@@ -493,6 +493,10 @@ Si Oracle Solaire vous est utile :
 
 ---
 
+## LIENS 
+
+    https://gunout.github.io/oracle-solaire-europeens/
+
 <div align="center">
 
 **🌞 Oracle Solaire** — *Voir le ciel autrement*
