@@ -86,7 +86,7 @@
   .compass { position: relative; width: min(320px, 80vw); aspect-ratio: 1; }
   .compass svg { width: 100%; height: 100%; }
   .arrow { transition: transform 1.4s cubic-bezier(0.34,1.56,0.64,1); transform-origin: 170px 170px; filter: drop-shadow(0 0 14px currentColor); }
-  .sun-dot, .sun-dot2 { filter: drop-shadow(0 0 8px rgba(255,255,255,0.4)); }
+  .sun-dot { filter: drop-shadow(0 0 8px rgba(255,255,255,0.4)); }
   .moon-dot { filter: drop-shadow(0 0 10px var(--moon)); }
   .label { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; opacity: 0.35; }
   .info-panel { display: flex; flex-direction: column; gap: 0.9rem; }
@@ -256,7 +256,6 @@
   .meteor-zhr { font-family: 'Courier New', monospace; color: var(--muted); font-size: 0.8rem; }
   .meteor-info { font-size: 0.78rem; color: #c8c8d8; display: flex; gap: 0.8rem; flex-wrap: wrap; }
   .iss-card { background: #0d0d12; border: 1px solid #22222e; border-radius: 12px; padding: 1rem; }
-  .iss-card.iss-visible { border-color: var(--azur); box-shadow: 0 0 20px rgba(91,155,213,0.3); }
   .iss-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; font-weight: 600; }
   .iss-icon { font-size: 1.4rem; }
   .iss-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; }
@@ -354,8 +353,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .pdf-box p { color: var(--muted); font-size: 0.85rem; }
-
-  /* Graphiques responsive */
   .sun-chart-container {
     position: relative; background: #0d0d12; border-radius: 12px;
     border: 1px solid #22222e; padding: clamp(0.5rem, 2vw, 1rem);
@@ -367,8 +364,7 @@
     height: clamp(240px, 45vw, 500px); width: 100%;
   }
   #sunChart, #compareChart, #solarMap,
-  .sun-chart-container canvas,
-  .solar-map-container canvas {
+  .sun-chart-container canvas, .solar-map-container canvas {
     width: 100% !important; height: 100% !important; display: block;
   }
   .chart-box {
@@ -384,8 +380,6 @@
   }
   #atlasChart { display: block; width: 100%; height: auto; max-height: clamp(220px, 55vw, 320px); margin-top: 0.4rem; }
   #pvChart, #pvgisCompareChart { max-height: clamp(180px, 45vw, 260px); }
-
-  /* Mobile nav + hamburger + FAB */
   .mobile-nav {
     display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9990;
     background: rgba(22, 22, 31, 0.98); backdrop-filter: blur(12px);
@@ -409,7 +403,6 @@
   .mobile-nav .nav-btn.primary-nav {
     background: linear-gradient(135deg, #2E7BD6, #0055A4); color: #fff; flex: 1.1;
   }
-  .mobile-nav .nav-btn.primary-nav:active { transform: scale(0.95); }
   .mobile-menu-toggle {
     display: none; position: fixed; top: 12px; right: 12px; z-index: 9991;
     width: 44px; height: 44px; background: var(--panel); border: 1px solid var(--azur);
@@ -417,7 +410,6 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.4); transition: all 0.2s;
     align-items: center; justify-content: center;
   }
-  .mobile-menu-toggle:active { transform: scale(0.9); }
   .mobile-menu-toggle.open { background: var(--azur); color: #fff; }
   .mobile-drawer {
     display: none; position: fixed; top: 0; right: 0; width: min(320px, 85vw); height: 100vh;
@@ -443,15 +435,13 @@
     font-size: 1.3rem; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
     transition: all 0.25s; display: flex; align-items: center; justify-content: center; padding: 0;
   }
-  .fab:active { transform: scale(0.9); }
   .fab.primary { background: linear-gradient(135deg, #2E7BD6, #0055A4); color: #fff; border: none; }
   .fab-label {
     position: absolute; right: 60px; top: 50%; transform: translateY(-50%);
     background: var(--panel); color: var(--text); padding: 0.35rem 0.7rem;
     border-radius: 6px; font-size: 0.72rem; white-space: nowrap;
     border: 1px solid #2a2a3a; opacity: 0; pointer-events: none;
-    transition: opacity 0.2s; font-family: 'Segoe UI', sans-serif; font-weight: 500;
-    letter-spacing: 0; text-transform: none;
+    transition: opacity 0.2s;
   }
   .fab:hover .fab-label { opacity: 1; }
   .drawer-backdrop {
@@ -467,20 +457,16 @@
     box-shadow: 0 6px 20px rgba(0,0,0,0.4); pointer-events: none; white-space: nowrap;
   }
   .refresh-indicator.show { transform: translateX(-50%) translateY(0); }
-
   @media (max-width: 900px) {
     body { padding: 1rem 0.7rem 6rem; }
     h1 { font-size: 1.25rem; letter-spacing: 0.08em; }
     .subtitle { font-size: 0.68rem; margin-bottom: 1rem; }
     .mode-tabs, .region-tabs, .lang-tabs { display: none !important; }
-    .mobile-nav { display: block; }
+    .mobile-nav, .mobile-menu-toggle, .mobile-drawer, .drawer-backdrop { display: block; }
     .mobile-menu-toggle { display: flex; }
-    .mobile-drawer { display: block; }
-    .drawer-backdrop { display: block; }
     .fab-group { display: flex; }
     .card { padding: 1rem; border-radius: 14px; }
     .section-title { font-size: 0.88rem; margin: 1.4rem 0 0.7rem; }
-    .info-banner { font-size: 0.75rem; padding: 0.7rem 0.9rem; }
     .main-grid { grid-template-columns: 1fr; gap: 1rem; }
     .chart-grid { grid-template-columns: 1fr; gap: 1rem; }
     .photo-mode { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
@@ -488,13 +474,11 @@
     .festival-grid { grid-template-columns: 1fr; }
     .weather-grid { grid-template-columns: repeat(3, 1fr); }
     .forecast-grid { grid-template-columns: repeat(2, 1fr); }
-    .key-times-table, .compare-table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-    .key-times-table th, .key-times-table td, .compare-table th, .compare-table td { padding: 0.5rem 0.7rem; font-size: 0.78rem; }
+    .key-times-table, .compare-table { display: block; overflow-x: auto; white-space: nowrap; }
     .sun-chart-container { height: clamp(200px, 50vw, 280px); padding: 0.7rem; }
     .solar-map-container { height: clamp(240px, 60vw, 380px); padding: 0.7rem; }
     .chart-box { padding: 0.7rem; }
     .chart-box canvas { max-height: clamp(200px, 55vw, 280px); }
-    .chart-box h4 { font-size: 0.72rem; }
     #mapReunion { height: 320px; }
     .time-slider-wrap { flex-direction: column; padding: 0.7rem; }
     #timeSlider { width: 100%; }
@@ -504,19 +488,14 @@
     .export-bar button { width: 100%; }
     .compass { width: min(260px, 75vw); }
     .direction-badge { font-size: 1.6rem; letter-spacing: 0.2em; }
-    .stat-grid { grid-template-columns: repeat(2, 1fr); }
     .city-selector { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); padding: 0.7rem 0.9rem; max-height: 220px; }
     .city-btn { padding: 0.5rem 0.6rem; font-size: 0.72rem; }
     .city-btn .city-name { font-size: 0.78rem; }
-    .mode-compare > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
     .pv-grid { grid-template-columns: 1fr; }
-    .pdf-box { padding: 1.4rem 1.6rem; }
-    .calib-box { padding: 1.4rem; }
     footer { margin-top: 1.5rem; padding-bottom: 0.5rem; }
   }
   @media (max-width: 480px) {
     h1 { font-size: 1.1rem; }
-    .subtitle { font-size: 0.62rem; }
     .weather-grid { grid-template-columns: repeat(2, 1fr); }
     .forecast-grid { grid-template-columns: repeat(2, 1fr); }
     .mobile-nav .nav-btn { font-size: 0.52rem; padding: 0.4rem 0.1rem; }
@@ -525,32 +504,20 @@
     .direction-badge { font-size: 1.4rem; }
     .sun-chart-container { height: clamp(180px, 55vw, 240px); padding: 0.6rem; }
     .solar-map-container { height: clamp(220px, 65vw, 320px); padding: 0.6rem; }
-    .chart-box { padding: 0.6rem; }
-    .chart-box h4 { font-size: 0.68rem; margin-bottom: 0.4rem; }
     .chart-box canvas { max-height: clamp(180px, 55vw, 240px); }
     .chart-grid { grid-template-columns: 1fr; gap: 0.7rem; }
     .compass { width: min(240px, 70vw); }
     #atlasChart { max-height: 240px; }
-    #pvChart, #pvgisCompareChart { max-height: 180px; }
     #mapReunion { height: 260px; }
     #modeSolo .chart-grid .chart-box:nth-child(4),
     #modeSolo .chart-grid .chart-box:nth-child(5),
     #modeSolo .chart-grid .chart-box:nth-child(6) { display: none; }
-  }
-  @media (max-width: 380px) {
-    .sun-chart-container { height: 180px; }
-    .solar-map-container { height: 220px; }
-    .chart-box canvas { max-height: 180px; }
-    .mobile-nav .nav-btn { font-size: 0.48rem; }
   }
   @media (min-width: 901px) {
     .mobile-nav, .mobile-menu-toggle, .mobile-drawer, .drawer-backdrop, .fab-group { display: none !important; }
   }
   button:focus-visible, .city-btn:focus-visible, input:focus-visible, select:focus-visible {
     outline: 2px solid var(--azur); outline-offset: 2px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
 </style>
 </head>
@@ -585,7 +552,7 @@
 <div class="container">
 
   <h1 data-i18n="title">🌞 Oracle Solaire — Europe</h1>
-  <p class="subtitle">v19.0 · 44 capitales · La Réunion · Lune détaillée · PDF · Bleu-Blanc-Rouge 🇫🇷</p>
+  <p class="subtitle">v4.0 · 44 capitales · La Réunion · Lune détaillée · PDF · 🇫🇷</p>
 
   <div class="lang-tabs">
     <button onclick="setLanguage('fr')" id="langFr" class="active">🇫🇷 FR</button>
@@ -960,7 +927,7 @@
     </div>
   </div>
 
-  <footer>Oracle Solaire v4.0 · Europe · La Réunion · 🇫🇷 · MIT</footer>
+  <footer>Oracle Solaire v19.1 · Europe · La Réunion · Bleu-Blanc-Rouge 🇫🇷 · MIT</footer>
 </div>
 
 <video id="arVideo" autoplay playsinline muted></video>
@@ -1017,7 +984,7 @@
 
 <script>
 /* ============================================================
-   0. SERVICE WORKER (PWA offline)
+   0. SERVICE WORKER
    ============================================================ */
 if ('serviceWorker' in navigator) {
   const swCode = `self.addEventListener('install',e=>self.skipWaiting());
@@ -1113,15 +1080,15 @@ const EUROPE_LOCATIONS = {
   ZAGREB:     { name:"Croatie", city:"Zagreb", lat:45.8150, lon:15.9819, altitude:158, timezone:1, dst:true, hemisphere:"nord", population:806341, region:"Croatie-Centrale", sf:0.52 }
 };
 
-/* Base globale */
-const ALL_LOCATIONS = { ...LOCATIONS, ...EUROPE_LOCATIONS };
+/* ============================================================
+   3. BASE GLOBALE (fusion)
+   ============================================================ */
+const ALL_LOCATIONS = Object.assign({}, LOCATIONS, EUROPE_LOCATIONS);
 
 /* ============================================================
-   3. PVGIS — DONNÉES EMBARQUÉES (Réunion + Paris + Europe)
-   Valeurs indicatives kWh/kWc/mois · tilt 20° (Réunion) / 35° (Europe)
+   4. PVGIS — DONNÉES EMBARQUÉES
    ============================================================ */
 const PVGIS_PRECOMPUTED = {
-  // Réunion
   SAINT_DENIS:      [152, 148, 162, 155, 142, 132, 135, 145, 155, 162, 158, 150],
   SAINTE_MARIE:     [150, 146, 160, 153, 140, 130, 133, 143, 153, 160, 156, 148],
   SAINTE_SUZANNE:   [148, 144, 158, 151, 138, 128, 131, 141, 151, 158, 154, 146],
@@ -1147,8 +1114,6 @@ const PVGIS_PRECOMPUTED = {
   SALAZIE:          [118, 115, 128, 124, 114, 105, 108, 117, 125, 130, 125, 118],
   PLAINE_PALMISTES: [120, 117, 130, 126, 116, 107, 110, 119, 127, 132, 127, 120],
   PARIS:            [ 42,  58,  95, 118, 138, 145, 148, 135, 108,  72,  48,  38],
-
-  // === Europe (tilt 35°, Sud) ===
   AMSTERDAM:  [ 38,  56,  92, 118, 140, 145, 148, 132, 102,  66,  42,  33],
   ANDORRA:    [ 78,  98, 138, 165, 188, 198, 208, 195, 158, 112,  80,  65],
   ANKARA:     [ 75,  95, 138, 168, 195, 208, 218, 208, 172, 125,  88,  70],
@@ -1209,7 +1174,7 @@ function getPVGISData(locOrKey) {
 }
 
 /* ============================================================
-   4. ÉTAT GLOBAL
+   5. ÉTAT GLOBAL
    ============================================================ */
 let currentLocation = LOCATIONS.SAINT_DENIS;
 let currentKey = "SAINT_DENIS";
@@ -1246,7 +1211,7 @@ function setLanguage(lang) {
 }
 
 /* ============================================================
-   5. UTILITAIRES
+   6. UTILITAIRES
    ============================================================ */
 const $ = id => document.getElementById(id);
 const rad = d => d * Math.PI / 180;
@@ -1315,7 +1280,7 @@ function showToast(msg) {
 }
 
 /* ============================================================
-   6. UI — Drawer, FAB, Nav
+   7. UI
    ============================================================ */
 function toggleDrawer() {
   const d = $("mobileDrawer"), b = $("drawerBackdrop"), t = $("mobileMenuToggle");
@@ -1344,7 +1309,7 @@ function syncMobileNav() {
 }
 
 /* ============================================================
-   7. CALCULS SOLEIL / LUNE
+   8. CALCULS ASTRONOMIQUES
    ============================================================ */
 function sunPos(date, lat, lon) {
   const p = SunCalc.getPosition(date, lat, lon);
@@ -1378,17 +1343,17 @@ function tagline(alt) {
   return "La nuit règne sur " + currentLocation.city + ".";
 }
 function adviceText(alt, loc) {
-  if (alt > 60) return "☀️ Soleil quasi au zénith à " + loc.city + " : chapeau, lunettes polarisées et SPF 50+ indispensables.";
-  if (alt > 30) return "🔆 Soleil bien haut : lumière excellente pour la photographie, protection recommandée.";
-  if (alt > 6) return "🌅 Heure dorée : lumière chaude et rasante — parfait pour la photographie.";
-  if (alt > -0.833) return "🌆 Heure bleue : ciel profond et contrastes doux — idéal pour les photos urbaines.";
-  if (alt > -12) return "🌆 Crépuscule : repérez Vénus et les étoiles brillantes vers l'ouest.";
+  if (alt > 60) return "☀️ Soleil quasi au zénith à " + loc.city + " : chapeau, lunettes polarisées et SPF 50+.";
+  if (alt > 30) return "🔆 Soleil bien haut : lumière excellente pour la photographie.";
+  if (alt > 6) return "🌅 Heure dorée : lumière chaude et rasante.";
+  if (alt > -0.833) return "🌆 Heure bleue : ciel profond et contrastes doux.";
+  if (alt > -12) return "🌆 Crépuscule : repérez Vénus et les étoiles brillantes.";
   if (alt > -18) return "🌌 Fin du crépuscule astronomique : la Voie lactée devient visible.";
   return "🌌 Nuit noire : conditions idéales pour l'astrophoto.";
 }
 
 /* ============================================================
-   8. RENDU MODE SOLO
+   9. RENDU SOLO
    ============================================================ */
 function renderSolo(instant) {
   const loc = currentLocation;
@@ -1429,9 +1394,6 @@ function renderSolo(instant) {
   $("infoBanner").innerHTML = "📍 <b>" + loc.city + "</b> · " + loc.name + " · " + loc.lat.toFixed(3) + "°, " + loc.lon.toFixed(3) + "° · " + loc.altitude + " m · UTC" + (currentTZ >= 0 ? "+" : "") + currentTZ + " — " + da + " " + MONTH_FULL[mo] + " " + y;
 }
 
-/* ============================================================
-   9. TABLE DES ÉPHÉMÉRIDES
-   ============================================================ */
 const TIME_MAP = { "sun-night":"nightEnd","sun-nautical-dawn":"nauticalDawn","sun-dawn":"dawn","sunriseTime":"sunrise","sun-sunrise-end":"sunriseEnd","sun-golden-end":"goldenHourEnd","solarNoonTime":"solarNoon","sun-golden":"goldenHour","sunsetTime":"sunset","sun-dusk":"dusk","sun-nautical-dusk":"nauticalDusk","sun-night-start":"night" };
 function renderTimes(instant) {
   const loc = currentLocation;
@@ -1447,7 +1409,6 @@ function renderTimes(instant) {
   if (ms) ms.textContent = fmtTime(mt.set);
   if (md) md.textContent = fmtDur(moonDurH(mt));
 }
-
 function renderMoon(instant) {
   const loc = currentLocation;
   const ill = SunCalc.getMoonIllumination(instant);
@@ -1462,7 +1423,7 @@ function renderMoon(instant) {
 }
 
 /* ============================================================
-   10. GRAPHIQUES CANVAS — prepCanvas adaptatif
+   10. CANVAS
    ============================================================ */
 function prepCanvas(id, wantH) {
   const cv = $(id); if (!cv) return null;
@@ -1763,7 +1724,6 @@ function renderMoonCompass(instant) {
     sunRef.setAttribute("opacity", s.altitude > 0 ? "0.7" : "0.25");
   } else sunRef.setAttribute("opacity", "0");
 }
-
 function renderMoonDirection(instant) {
   const loc = currentLocation;
   const mp = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
@@ -1805,7 +1765,6 @@ function renderMoonDirection(instant) {
     else advice.textContent = "🌘 Lune décroissante (" + illumPct + "%). Visible en fin de nuit.";
   }
 }
-
 function drawMoonAzimuthRose(instant) {
   const p = prepCanvas("moonAzimuthRose"); if (!p) return;
   const { ctx, w, h } = p;
@@ -1854,7 +1813,6 @@ function drawMoonAzimuthRose(instant) {
   }
   ctx.textAlign = "left";
 }
-
 function drawMoonAltitudePolar(instant) {
   const p = prepCanvas("moonAltitudePolar"); if (!p) return;
   const { ctx, w, h } = p;
@@ -1910,7 +1868,6 @@ function drawMoonAltitudePolar(instant) {
   }
   ctx.textAlign = "left";
 }
-
 function drawMoonAzimuthTimeline(instant) {
   const p = prepCanvas("moonAzimuthTimeline"); if (!p) return;
   const { ctx, w, h } = p;
@@ -1980,7 +1937,6 @@ function drawMoonAzimuthTimeline(instant) {
   ctx.fillStyle = "#c8d4e8"; ctx.fillText("— Lune", ml + 5, mt + 12);
   ctx.fillStyle = "#EF4135"; ctx.fillText("- - Soleil", ml + 55, mt + 12);
 }
-
 function drawMoonSunAzimuthCompare(instant) {
   const p = prepCanvas("moonSunAzimuthCompare"); if (!p) return;
   const { ctx, w, h } = p;
@@ -2022,7 +1978,6 @@ function drawMoonSunAzimuthCompare(instant) {
   ctx.fillText("Écart : " + diff.toFixed(1) + "°", cx, cy + 4);
   ctx.textAlign = "left";
 }
-
 function drawMoonSunSectors(instant) {
   const p = prepCanvas("moonSunSectors"); if (!p) return;
   const { ctx, w, h } = p;
@@ -2070,7 +2025,6 @@ function drawMoonSunSectors(instant) {
   ctx.fillStyle = "#EF4135"; ctx.fillRect(10, 10, 12, 8); ctx.fillText("Soleil", 26, 18);
   ctx.fillStyle = "#c8d4e8"; ctx.fillRect(80, 10, 12, 8); ctx.fillText("Lune", 96, 18);
 }
-
 function drawMoonQuadrantsChart(instant) {
   const p = prepCanvas("moonQuadrantsChart"); if (!p) return;
   const { ctx, w, h } = p;
@@ -2113,7 +2067,6 @@ function drawMoonQuadrantsChart(instant) {
     ctx.fillText(q.name + " (" + Math.round(q.count / total * 100) + "%)", 26, y + 9);
   });
 }
-
 function renderMoonHourlyTable(instant) {
   const el = $("moonHourlyTable"); if (!el) return;
   const loc = currentLocation;
@@ -2145,7 +2098,6 @@ function renderMoonHourlyTable(instant) {
     </tr>
   `).join("");
 }
-
 function renderMoonModule(instant) {
   renderMoonCompass(instant);
   renderMoonDirection(instant);
@@ -2159,7 +2111,7 @@ function renderMoonModule(instant) {
 }
 
 /* ============================================================
-   12. MÉTÉO (Open-Meteo)
+   12. MÉTÉO
    ============================================================ */
 const WMO = {0:["☀️","Ciel dégagé"],1:["🌤️","Plutôt dégagé"],2:["⛅","Partiellement nuageux"],3:["☁️","Couvert"],45:["🌫️","Brouillard"],48:["🌫️","Brouillard givrant"],51:["🌦️","Bruine légère"],53:["🌦️","Bruine"],55:["🌧️","Bruine dense"],61:["🌦️","Pluie faible"],63:["🌧️","Pluie"],65:["⛈️","Pluie forte"],71:["🌨️","Neige faible"],73:["🌨️","Neige"],75:["❄️","Neige forte"],80:["🌦️","Averses faibles"],81:["🌧️","Averses"],82:["⛈️","Averses fortes"],95:["⛈️","Orage"],96:["⛈️","Orage et grêle"],99:["⛈️","Orage et grêle"]};
 async function loadWeather(loc) {
@@ -2234,11 +2186,9 @@ function renderPlanets(instant, loc) {
     el.innerHTML = '<em style="color:var(--rouge)">Erreur planètes : ' + e.message + '</em>';
   }
 }
-
 const METEOR_SHOWERS = [
   { name:"Quadrantides", peak:[1,3], zhr:120, color:"#5B9BD5", radiant:{ra:230, dec:49} },
   { name:"Lyrides", peak:[4,22], zhr:18, color:"#FF8A80", radiant:{ra:271, dec:34} },
-  { name:"Éta Aquarides", peak:[5,6], zhr:50, color:"#5B9BD5", radiant:{ra:338, dec:-1} },
   { name:"Perséides", peak:[8,12], zhr:100, color:"#EF4135", radiant:{ra:48, dec:58} },
   { name:"Orionides", peak:[10,21], zhr:20, color:"#FF8A80", radiant:{ra:95, dec:16} },
   { name:"Léonides", peak:[11,17], zhr:15, color:"#EF4135", radiant:{ra:152, dec:22} },
@@ -2314,24 +2264,21 @@ async function renderISSPasses(loc) {
 }
 
 /* ============================================================
-   15. FÊTES (Réunion + Europe)
+   15. FÊTES
    ============================================================ */
 const CREOLE_FESTIVALS = [
   { name:"Cavadee",           date:"2026-02-01", tradition:"tamoule",    icon:"🛕", lieu:"Saint-André, Saint-Louis" },
   { name:"Maha Shivaratri",   date:"2026-02-15", tradition:"tamoule",    icon:"🔱", lieu:"Temples tamouls" },
   { name:"Nouvel An chinois", date:"2026-02-17", tradition:"chinoise",   icon:"🐉", lieu:"Saint-Denis, Saint-Pierre" },
   { name:"Aïd el-Fitr",       date:"2026-03-20", tradition:"musulmane",  icon:"🌙", lieu:"Toute l'île" },
-  { name:"Marche sur le feu", date:"2026-03-28", tradition:"tamoule",    icon:"🔥", lieu:"Saint-André, Sainte-Suzanne" },
   { name:"Fête de la Canne",  date:"2026-05-01", tradition:"locale",     icon:"🎋", lieu:"Toute l'île" },
   { name:"Dipavali",          date:"2026-11-08", tradition:"tamoule",    icon:"🪔", lieu:"Saint-André" },
   { name:"Fèt Kaf",           date:"2026-12-20", tradition:"locale",     icon:"✊", lieu:"Toute l'île" },
   { name:"Noël",              date:"2026-12-25", tradition:"chrétienne", icon:"🎄", lieu:"Toute l'île" }
 ];
-
 const EUROPE_FESTIVALS = [
   { name:"Jour de l'An",        date:"2026-01-01", tradition:"chrétienne", icon:"🎉", lieu:"Toute l'Europe" },
   { name:"Épiphanie",           date:"2026-01-06", tradition:"chrétienne", icon:"👑", lieu:"Europe catholique" },
-  { name:"Fête des Rois",       date:"2026-01-06", tradition:"chrétienne", icon:"🍰", lieu:"Espagne, France" },
   { name:"Carnaval de Venise",  date:"2026-02-10", tradition:"locale",     icon:"🎭", lieu:"Venise (Italie)" },
   { name:"Fête nationale grecque", date:"2026-03-25", tradition:"locale",  icon:"🇬🇷", lieu:"Grèce" },
   { name:"Pâques",              date:"2026-04-05", tradition:"chrétienne", icon:"🐣", lieu:"Toute l'Europe" },
@@ -2344,14 +2291,13 @@ const EUROPE_FESTIVALS = [
   { name:"Fête nationale suisse", date:"2026-08-01", tradition:"locale",   icon:"🇨🇭", lieu:"Suisse" },
   { name:"Toussaint",           date:"2026-11-01", tradition:"chrétienne", icon:"🕯️", lieu:"Toute l'Europe" },
   { name:"Saint-Nicolas",       date:"2026-12-06", tradition:"chrétienne", icon:"🎁", lieu:"Pays-Bas, Belgique" },
-  { name:"Noël",                date:"2026-12-25", tradition:"chrétienne", icon:"🎄", lieu:"Toute l'Europe" },
-  { name:"Saint-Étienne",       date:"2026-12-26", tradition:"chrétienne", icon:"⛪", lieu:"Europe centrale" }
+  { name:"Noël",                date:"2026-12-25", tradition:"chrétienne", icon:"🎄", lieu:"Toute l'Europe" }
 ];
-
 function renderCreoleCalendar() {
   const el = $("creoleCalendar"); if (!el) return;
   const now = new Date();
-  const festivals = currentLocation.name === "La Réunion" ? CREOLE_FESTIVALS : EUROPE_FESTIVALS;
+  const isReunion = currentLocation && currentLocation.name === "La Réunion";
+  const festivals = isReunion ? CREOLE_FESTIVALS : EUROPE_FESTIVALS;
   el.innerHTML = [...festivals].sort((a, b) => a.date.localeCompare(b.date)).map(f => {
     const d = new Date(f.date + "T12:00:00Z");
     const ill = SunCalc.getMoonIllumination(d);
@@ -2370,7 +2316,7 @@ function renderCreoleCalendar() {
 }
 
 /* ============================================================
-   16. ÉVÉNEMENTS + PHOTO + SLIDER
+   16. ÉVÉNEMENTS
    ============================================================ */
 function renderEvents(year) {
   const el = $("eventsGrid"); if (!el) return;
@@ -2440,12 +2386,11 @@ function toggleTimeAnimation() {
 }
 
 /* ============================================================
-   17. CARTE MAPLIBRE
+   17. CARTE
    ============================================================ */
 function initMap() {
   if (map || typeof maplibregl === "undefined") return;
   const mapEl = $("mapReunion"); if (!mapEl) return;
-  const regionColors = { Nord:"#5B9BD5", Sud:"#EF4135", Est:"#E8E8F0", Ouest:"#FF8A80" };
   try {
     map = new maplibregl.Map({
       container: "mapReunion",
@@ -2466,7 +2411,7 @@ function initMap() {
         const l = ALL_LOCATIONS[k];
         const el = document.createElement("div");
         el.className = "mk";
-        el.style.background = regionColors[l.region] || "#5B9BD5";
+        el.style.background = "#5B9BD5";
         el.title = l.city;
         el.addEventListener("click", () => selectCity(k));
         const mk = new maplibregl.Marker({ element: el }).setLngLat([l.lon, l.lat]).addTo(map);
@@ -2486,29 +2431,38 @@ function addGeoMarker(lat, lon) {
   map.flyTo({ center: [lon, lat], zoom: 8 });
 }
 function flyToLocation(loc) {
-  if (!map) return;
-  map.flyTo({ center: [loc.lon, loc.lat], zoom: 7 });
+  if (!map || !loc) return;
+  try { map.flyTo({ center: [loc.lon, loc.lat], zoom: 7 }); } catch (e) {}
 }
 
 /* ============================================================
-   18. SÉLECTEURS
+   18. SÉLECTEURS — ✅ CORRIGÉ v19.1
    ============================================================ */
 function renderCitySelector() {
   const el = $("citySelector"); if (!el) return;
-  let keys;
-  if (currentRegion === "REUNION") keys = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].name === "La Réunion");
-  else if (currentRegion === "PARIS") keys = ["PARIS"];
-  else if (currentRegion === "EUROPE") keys = Object.keys(EUROPE_LOCATIONS);
-  else keys = Object.keys(ALL_LOCATIONS);
+  let keys = [];
+  if (currentRegion === "REUNION") {
+    keys = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].name === "La Réunion");
+  } else if (currentRegion === "PARIS") {
+    keys = ["PARIS"];
+  } else if (currentRegion === "EUROPE") {
+    keys = Object.keys(EUROPE_LOCATIONS);
+  } else {
+    keys = Object.keys(ALL_LOCATIONS);
+  }
+
   el.innerHTML = keys.map(k => {
-    const l = ALL_LOCATIONS[k];
+    const l = ALL_LOCATIONS[k] || EUROPE_LOCATIONS[k] || LOCATIONS[k];
+    if (!l) { console.warn("Données manquantes pour :", k); return ""; }
     const fav = favorites.includes(k);
-    return `<button class="city-btn ${k === currentKey ? "active" : ""}" onclick="selectCity('${k}')">
+    const isActive = k === currentKey;
+    return `<button class="city-btn ${isActive ? "active" : ""}" onclick="selectCity('${k}')">
       <span class="city-name">${l.city}</span>
       <span class="city-info">${l.name} · ${l.altitude} m</span>
       <span class="fav ${fav ? "on" : ""}" onclick="event.stopPropagation();toggleFav('${k}')">${fav ? "★" : "☆"}</span>
     </button>`;
-  }).join("");
+  }).filter(Boolean).join("");
+
   renderFavBar();
 }
 function toggleFav(k) {
@@ -2521,32 +2475,44 @@ function toggleFav(k) {
 function renderFavBar() {
   const el = $("favBar"); if (!el) return;
   if (!favorites.length) { el.innerHTML = ""; return; }
-  el.innerHTML = favorites.map(k => `<button class="small" onclick="selectCity('${k}')">⭐ ${ALL_LOCATIONS[k].city}</button>`).join("");
+  el.innerHTML = favorites.map(k => {
+    const l = ALL_LOCATIONS[k]; if (!l) return "";
+    return `<button class="small" onclick="selectCity('${k}')">⭐ ${l.city}</button>`;
+  }).join("");
 }
+/* ✅ selectCity ROBUSTE */
 function selectCity(k) {
-  if (ALL_LOCATIONS[k]) {
-    currentKey = k;
-    currentLocation = ALL_LOCATIONS[k];
-    if (currentLocation.name === "La Réunion") currentRegion = "REUNION";
-    else if (k === "PARIS") currentRegion = "PARIS";
-    else if (EUROPE_LOCATIONS[k]) currentRegion = "EUROPE";
+  if (!k || !ALL_LOCATIONS[k]) {
+    console.warn("Ville inconnue :", k);
+    return;
   }
+  currentKey = k;
+  currentLocation = ALL_LOCATIONS[k];
+  if (currentLocation.name === "La Réunion") currentRegion = "REUNION";
+  else if (k === "PARIS") currentRegion = "PARIS";
+  else if (EUROPE_LOCATIONS[k]) currentRegion = "EUROPE";
+
   syncRegionTabs();
   renderCitySelector();
   updateMarkers();
   flyToLocation(currentLocation);
-  refreshAll();
-  loadWeather(currentLocation);
-  renderISSPasses(currentLocation);
-  renderCreoleCalendar();
+
+  try { refreshAll(); } catch (e) { console.error("Erreur refreshAll:", e); }
+  try { loadWeather(currentLocation); } catch (e) { console.error("Erreur loadWeather:", e); }
+  try { renderISSPasses(currentLocation); } catch (e) { console.error("Erreur ISS:", e); }
+  try { renderCreoleCalendar(); } catch (e) { console.error("Erreur calendrier:", e); }
 }
+/* ✅ switchRegion ROBUSTE */
 function switchRegion(region) {
   currentRegion = region;
   syncRegionTabs();
   renderCitySelector();
-  if (region === "REUNION") selectCity("SAINT_DENIS");
-  else if (region === "PARIS") selectCity("PARIS");
-  else if (region === "EUROPE") {
+
+  if (region === "REUNION") {
+    if (!LOCATIONS[currentKey] || LOCATIONS[currentKey].name !== "La Réunion") selectCity("SAINT_DENIS");
+  } else if (region === "PARIS") {
+    if (currentKey !== "PARIS") selectCity("PARIS");
+  } else if (region === "EUROPE") {
     if (!EUROPE_LOCATIONS[currentKey]) selectCity("PARIS");
   }
 }
@@ -2793,7 +2759,7 @@ function renderInsight(data) {
   const worst = rows.reduce((a, b) => b.tot < a.tot ? b : a);
   const gap = best.tot > 0 ? Math.round((best.tot - worst.tot) / best.tot * 100) : 0;
   const bestM = best.vals.indexOf(Math.max(...best.vals));
-  el.innerHTML = `🏆 <b>${best.city}</b> domine avec <b>${Math.round(best.tot).toLocaleString("fr-FR")} kWh/m²</b> sur l'année — ${worst.city !== best.city ? `soit <b>${gap}%</b> de plus que ${worst.city}` : "aucune comparaison"}. Son meilleur mois est <b>${MONTH_FULL[bestM]}</b> (${Math.round(best.vals[bestM])} kWh/m²).`;
+  el.innerHTML = `🏆 <b>${best.city}</b> domine avec <b>${Math.round(best.tot).toLocaleString("fr-FR")} kWh/m²</b> sur l'année — ${worst.city !== best.city ? `soit <b>${gap}%</b> de plus que ${worst.city}` : "aucune comparaison"}. Son meilleur mois est <b>${MONTH_FULL[bestM]}</b>.`;
 }
 function exportAtlasPNG() {
   const svg = $("atlasChart"); if (!svg) return;
@@ -2819,7 +2785,7 @@ function exportAtlasPNG() {
 }
 
 /* ============================================================
-   21. SIMULATEUR PV (avec hémisphère adaptatif)
+   21. PV
    ============================================================ */
 function initPV() {
   const keys = Object.keys(ALL_LOCATIONS);
@@ -2837,7 +2803,6 @@ function renderPV() {
   const price = parseFloat($("pvPrice").value) || 1800;
   const tarif = parseFloat($("pvTarif").value) || 0.13;
   const ghi = monthlyGHI(loc);
-  // Hémisphère adaptatif
   const isNorth = loc.hemisphere === "nord";
   const optTilt = clamp(Math.abs(loc.lat), 0, 45);
   const optAz = isNorth ? 180 : 0;
@@ -3127,7 +3092,7 @@ function refreshAll() {
 }
 
 /* ============================================================
-   25. EXPORT PDF
+   25. PDF
    ============================================================ */
 function showPDFOverlay(status) {
   const ov = $("pdfOverlay");
@@ -3195,7 +3160,7 @@ async function exportPDF() {
     const pageH = doc.internal.pageSize.getHeight();
     doc.setDrawColor(...AZUR); doc.setLineWidth(0.3); doc.line(15, pageH - 15, W - 15, pageH - 15);
     doc.setFontSize(8); doc.setTextColor(...GRIS);
-    doc.text("Oracle Solaire v19.0 · Europe", 15, pageH - 10);
+    doc.text("Oracle Solaire v19.1 · Europe", 15, pageH - 10);
     doc.text("Généré le " + new Date().toLocaleString("fr-FR"), W - 15, pageH - 10, { align: "right" });
     doc.save("ephemerides-" + loc.city.replace(/[^a-z0-9]/gi, "_").toLowerCase() + "-" + y + "-" + pad2(mo + 1) + "-" + pad2(da) + ".pdf");
     hidePDFOverlay();
@@ -3242,7 +3207,7 @@ async function exportPDFWithCharts() {
     const pageH = doc.internal.pageSize.getHeight();
     doc.setDrawColor(91, 155, 213); doc.setLineWidth(0.3); doc.line(15, pageH - 15, W - 15, pageH - 15);
     doc.setFontSize(8); doc.setTextColor(138, 138, 154);
-    doc.text("Oracle Solaire v19.0 · Europe", 15, pageH - 10);
+    doc.text("Oracle Solaire v19.1 · Europe", 15, pageH - 10);
     doc.text("Généré le " + new Date().toLocaleString("fr-FR"), W - 15, pageH - 10, { align: "right" });
     doc.save("ephemerides-graphiques-" + loc.city.replace(/[^a-z0-9]/gi, "_").toLowerCase() + "-" + y + "-" + pad2(mo + 1) + "-" + pad2(da) + ".pdf");
     hidePDFOverlay();
@@ -3314,7 +3279,7 @@ window.addEventListener("DOMContentLoaded", () => {
   renderISSPasses(currentLocation);
   renderCreoleCalendar();
   initAtlas();
-  showToast("🌞 Oracle Solaire v4.0 — Europe prêt !");
+  showToast("🌞 Oracle Solaire v4.0 prêt !");
 });
 </script>
 </body>
