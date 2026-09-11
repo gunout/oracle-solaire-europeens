@@ -1,0 +1,3321 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🌞 Oracle Solaire v4.0 — Europe · La Réunion</title>
+
+<link rel="manifest" href='data:application/manifest+json,{"name":"Oracle Solaire","short_name":"Oracle","start_url":".","display":"standalone","background_color":"%230d0d12","theme_color":"%230055A4"}' />
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+  :root {
+    --bleu:#0055A4; --azur:#5B9BD5; --rouge:#EF4135; --rose:#FF8A80; --blanc:#E8E8F0;
+    --moon:#c8d4e8; --acc:#5B9BD5; --bg:#0d0d12; --panel:#16161f; --text:#e8e8f0; --muted:#8a8a9a;
+    --city1:#5B9BD5; --city2:#EF4135;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body::before {
+    content:""; position:fixed; top:0; left:0; right:0; height:5px; z-index:9999; pointer-events:none;
+    background:linear-gradient(90deg, #0055A4 0 33.4%, #FFFFFF 33.4% 66.7%, #EF4135 66.7% 100%);
+  }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, var(--bg) 70%);
+    color: var(--text); min-height: 100vh; padding: 1.5rem 1rem 3rem; overflow-x: hidden;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 {
+    font-size: clamp(1.4rem, 3.2vw, 2rem); font-weight: 300; letter-spacing: 0.15em;
+    text-transform: uppercase; text-align: center; margin-bottom: 0.3rem;
+    background: linear-gradient(90deg, var(--azur), #E8E8F0, var(--rouge));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .subtitle { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.1em; text-align: center; margin-bottom: 1.5rem; }
+  .mode-tabs, .region-tabs, .lang-tabs { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .mode-tabs button, .region-tabs button, .lang-tabs button {
+    padding: 0.55rem 1.1rem; font-size: 0.85rem; border-radius: 25px;
+    background: #0d0d12; border: 1px solid #2a2a3a; color: var(--text); cursor: pointer; transition: all 0.2s;
+  }
+  .mode-tabs button.active {
+    background: linear-gradient(135deg, #2E7BD6, #0055A4); color: #fff; border-color: var(--azur);
+    box-shadow: 0 0 20px rgba(91,155,213,0.45);
+  }
+  .region-tabs button.active, .lang-tabs button.active {
+    background: linear-gradient(135deg, rgba(91,155,213,0.3), rgba(91,155,213,0.08));
+    color: var(--azur); border-color: var(--azur);
+  }
+  .lang-tabs button { padding: 0.4rem 0.9rem; font-size: 0.78rem; }
+  .city-selector {
+    background: var(--panel); border: 1px solid #2a2a3a; border-radius: 14px;
+    padding: 1rem 1.2rem; margin-bottom: 1.5rem;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem; max-height: 280px; overflow-y: auto;
+  }
+  .city-btn {
+    padding: 0.6rem 0.8rem; font-size: 0.78rem; border-radius: 8px;
+    background: #0d0d12; border: 1px solid #22222e; text-align: left;
+    cursor: pointer; transition: all 0.2s; line-height: 1.3; color: var(--text); position: relative;
+  }
+  .city-btn:hover { border-color: var(--azur); background: rgba(91,155,213,0.05); }
+  .city-btn.active {
+    background: linear-gradient(135deg, rgba(91,155,213,0.2), rgba(91,155,213,0.05));
+    border-color: var(--azur); color: var(--azur);
+  }
+  .city-btn .city-name { font-weight: 600; display: block; }
+  .city-btn .city-info { font-size: 0.68rem; color: var(--muted); display: block; }
+  .city-btn .fav {
+    position: absolute; top: 4px; right: 4px; font-size: 0.85rem; opacity: 0.4;
+    cursor: pointer; padding: 2px 4px; border-radius: 4px;
+  }
+  .city-btn .fav:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+  .city-btn .fav.on { opacity: 1; color: #FFD700; }
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  @media (max-width: 820px) { .main-grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid #2a2a3a; border-radius: 18px; padding: 1.4rem; }
+  .compass-wrap { display: flex; justify-content: center; align-items: center; }
+  .compass { position: relative; width: min(320px, 80vw); aspect-ratio: 1; }
+  .compass svg { width: 100%; height: 100%; }
+  .arrow { transition: transform 1.4s cubic-bezier(0.34,1.56,0.64,1); transform-origin: 170px 170px; filter: drop-shadow(0 0 14px currentColor); }
+  .sun-dot, .sun-dot2 { filter: drop-shadow(0 0 8px rgba(255,255,255,0.4)); }
+  .moon-dot { filter: drop-shadow(0 0 10px var(--moon)); }
+  .label { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; opacity: 0.35; }
+  .info-panel { display: flex; flex-direction: column; gap: 0.9rem; }
+  .direction-badge {
+    font-size: 2.2rem; font-weight: 200; letter-spacing: 0.3em; text-align: center;
+    padding: 0.6rem 0; border-radius: 12px; transition: color 0.6s, background 0.6s; background: #0d0d12;
+  }
+  .tagline { text-align: center; color: var(--muted); font-size: 0.88rem; font-style: italic; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+  .stat { background: #0d0d12; border: 1px solid #22222e; border-radius: 10px; padding: 0.7rem 0.9rem; }
+  .stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.3rem; }
+  .stat-value { font-size: 0.95rem; font-weight: 600; font-family: 'Courier New', monospace; word-break: break-all; }
+  .bar { height: 6px; border-radius: 3px; background: #22222e; overflow: hidden; margin-top: 0.4rem; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 1s; width: 0; }
+  .advice { background: #0d0d12; border-left: 3px solid currentColor; border-radius: 6px; padding: 0.9rem 1.1rem; font-size: 0.88rem; line-height: 1.55; color: #c8c8d8; }
+  .section-title { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin: 1.8rem 0 0.9rem; text-align: center; }
+  .info-banner {
+    background: linear-gradient(135deg, rgba(91,155,213,0.12), rgba(239,65,53,0.05));
+    border: 1px solid rgba(91,155,213,0.35); border-radius: 10px;
+    padding: 0.8rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.82rem; color: #c8d4e8; text-align: center;
+  }
+  .key-times-table, .compare-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .key-times-table th, .key-times-table td,
+  .compare-table th, .compare-table td { padding: 0.55rem 0.9rem; text-align: left; border-bottom: 1px solid #22222e; }
+  .key-times-table th, .compare-table th { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+  .key-times-table td, .compare-table td { font-family: 'Courier New', monospace; }
+  .key-times-table td:first-child, .compare-table td:first-child { font-family: inherit; color: var(--muted); }
+  .val-sun { color: #FF6B5E; } .val-moon { color: var(--moon); }
+  .compare-table .col-city1 { color: var(--city1); } .compare-table .col-city2 { color: var(--city2); }
+  .compare-table .col-diff { color: #c8d4e8; font-weight: 600; }
+  .solar-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; margin-top: 1rem; }
+  .solar-info .info-item { background: #0d0d12; border: 1px solid #22222e; border-radius: 8px; padding: 0.6rem 0.8rem; text-align: center; }
+  .solar-info .info-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.2rem; }
+  .solar-info .info-value { font-size: 0.9rem; font-weight: 600; font-family: 'Courier New', monospace; }
+  .chart-legend { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.8rem; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+  .chart-legend span { display: flex; align-items: center; gap: 0.4rem; }
+  .chart-legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; }
+  #mapReunion { width: 100%; height: 450px; border-radius: 12px; border: 1px solid #22222e; z-index: 1; background: #0d0d12; }
+  .mk { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.55); cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.6); transition: transform 0.2s; }
+  .mk:hover { transform: scale(1.35); }
+  .mk.mk-on { border-color: #fff; transform: scale(1.35); box-shadow: 0 0 14px rgba(91,155,213,0.9); }
+  .mk.mk-me { background: #FFD700 !important; width: 14px; height: 14px; box-shadow: 0 0 18px #FFD700; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+  .maplibregl-popup-content { background: var(--panel) !important; color: var(--text) !important; border: 1px solid var(--azur) !important; border-radius: 10px !important; }
+  .maplibregl-popup-tip { border-top-color: var(--panel) !important; }
+  .maplibregl-popup-close-button { color: var(--azur) !important; font-size: 18px !important; }
+  .maplibregl-ctrl-attrib { background: rgba(13,13,18,0.8) !important; color: var(--muted) !important; font-size: 0.65rem !important; }
+  .maplibregl-ctrl-attrib a { color: var(--azur) !important; }
+  .photo-mode { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 0.8rem; }
+  .photo-slot { background: #0d0d12; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #22222e; transition: transform 0.3s; }
+  .photo-slot:hover { transform: translateY(-3px); }
+  .photo-slot .icon { font-size: 1.6rem; margin-bottom: 0.3rem; }
+  .photo-slot .title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+  .photo-slot .time { font-size: 1.1rem; font-weight: 700; font-family: 'Courier New', monospace; }
+  .photo-slot .desc { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
+  .photo-slot.golden { border-color: var(--rouge); } .photo-slot.golden .time { color: var(--rouge); }
+  .photo-slot.blue { border-color: var(--azur); } .photo-slot.blue .time { color: var(--azur); }
+  .photo-slot.noon { border-color: var(--blanc); } .photo-slot.noon .time { color: var(--blanc); }
+  .events-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 0.8rem; }
+  .event-card { background: #0d0d12; border: 1px solid #22222e; border-left: 3px solid var(--rouge); border-radius: 10px; padding: 0.8rem 1rem; font-size: 0.85rem; }
+  .event-card.spring { border-left-color: var(--azur); }
+  .event-card.summer { border-left-color: var(--rouge); }
+  .event-card.autumn { border-left-color: var(--rose); }
+  .event-card.winter { border-left-color: var(--blanc); }
+  .event-name { font-weight: 600; margin-bottom: 0.3rem; font-size: 0.9rem; }
+  .event-date { color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.82rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; align-items: center; margin-bottom: 1.2rem; }
+  input[type="date"], input[type="time"], input[type="number"], select, input[type="range"] {
+    background: #0d0d12; border: 1px solid #2a2a3a; color: var(--text);
+    padding: 0.55rem 0.75rem; border-radius: 8px; font-size: 0.88rem; font-family: inherit;
+  }
+  button {
+    background: linear-gradient(135deg,#2a2a3a,#1a1a2e); color: var(--text);
+    border: 1px solid #3a3a4a; padding: 0.6rem 1.2rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600; letter-spacing: 0.06em; cursor: pointer; transition: all 0.25s;
+  }
+  button:hover { border-color: var(--azur); box-shadow: 0 0 18px rgba(91,155,213,0.35); transform: translateY(-1px); }
+  button.small { padding: 0.4rem 0.8rem; font-size: 0.78rem; }
+  button.primary { background: linear-gradient(135deg, #2E7BD6, #0055A4); color: #fff; border: none; }
+  .export-bar { display: flex; gap: 0.6rem; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.72rem; letter-spacing: 0.08em; text-align: center; }
+  .geo-status { font-size: 0.78rem; color: var(--muted); text-align: center; margin-bottom: 0.8rem; }
+  .geo-status.ok { color: var(--azur); } .geo-status.err { color: var(--rouge); }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--panel); border: 1px solid var(--azur); color: var(--text);
+    padding: 0.8rem 1.4rem; border-radius: 10px; font-size: 0.88rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); z-index: 10000;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .mode-solo, .mode-compare, .mode-atlas, .mode-pv, .mode-comparePvgis { display: none; }
+  .mode-solo.active, .mode-compare.active, .mode-atlas.active,
+  .mode-pv.active, .mode-comparePvgis.active { display: block; }
+  .weather-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; margin-top: 0.8rem; }
+  .weather-item { background: #0d0d12; border: 1px solid #22222e; border-radius: 10px; padding: 0.7rem; text-align: center; }
+  .weather-item .wi-icon { font-size: 1.8rem; margin-bottom: 0.3rem; }
+  .weather-item .wi-label { font-size: 0.65rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; }
+  .weather-item .wi-value { font-size: 1.1rem; font-weight: 700; font-family: 'Courier New', monospace; margin-top: 0.2rem; }
+  .forecast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; }
+  .forecast-day { background: #0d0d12; border: 1px solid #22222e; border-radius: 10px; padding: 0.7rem 0.5rem; text-align: center; transition: transform 0.2s; }
+  .forecast-day:hover { transform: translateY(-3px); border-color: var(--azur); }
+  .forecast-day .fd-name { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.3rem; }
+  .forecast-day .fd-icon { font-size: 1.6rem; margin: 0.3rem 0; }
+  .forecast-day .fd-temp { font-size: 0.85rem; font-weight: 700; font-family: 'Courier New', monospace; color: #FF8A80; }
+  .forecast-day .fd-tmin { font-size: 0.75rem; color: var(--azur); font-family: 'Courier New', monospace; }
+  .forecast-day .fd-sun { font-size: 0.7rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.4; }
+  .forecast-day .fd-uv { font-size: 0.65rem; color: #FFD700; margin-top: 0.2rem; }
+  .pv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.8rem; }
+  .pv-field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .pv-field label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .pv-result { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin-top: 1rem; }
+  .pv-result .stat { border-left: 3px solid var(--azur); }
+  .pv-result .stat.gold { border-left-color: #FFD700; }
+  #arVideo { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 9998; display: none; background: #000; }
+  #arOverlay { position: fixed; inset: 0; z-index: 9999; display: none; }
+  #arOverlay canvas { width: 100%; height: 100%; }
+  #arClose {
+    position: fixed; top: 20px; right: 20px; z-index: 10000; display: none;
+    background: rgba(0,0,0,0.7); border: 1px solid var(--azur); color: #fff;
+    width: 50px; height: 50px; border-radius: 50%; font-size: 1.5rem; cursor: pointer;
+  }
+  #arInfo {
+    position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); z-index: 10000; display: none;
+    background: rgba(13,13,18,0.85); border: 1px solid var(--azur); border-radius: 12px;
+    padding: 0.8rem 1.4rem; font-size: 0.85rem; color: #fff; text-align: center; min-width: 260px;
+  }
+  #arShutter {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    z-index: 10001; display: none;
+    width: 70px; height: 70px; border-radius: 50%;
+    background: #fff; border: 4px solid var(--rouge);
+    font-size: 1.8rem; cursor: pointer;
+    box-shadow: 0 0 20px rgba(239,65,53,0.6);
+    transition: transform 0.15s;
+  }
+  #arShutter:active { transform: translateX(-50%) scale(0.9); }
+  #arShutter.show { display: block; }
+  .calib-overlay {
+    position: fixed; inset: 0; z-index: 10001; display: none;
+    background: rgba(13,13,18,0.92); backdrop-filter: blur(8px);
+    justify-content: center; align-items: center;
+  }
+  .calib-overlay.show { display: flex; }
+  .calib-box {
+    background: var(--panel); border: 1px solid var(--azur); border-radius: 16px;
+    padding: 1.8rem; max-width: 420px; width: 90vw; text-align: center;
+  }
+  .calib-box h3 { font-size: 1.2rem; margin-bottom: 0.6rem; color: var(--azur); letter-spacing: 0.1em; }
+  .calib-box p { font-size: 0.88rem; color: #c8c8d8; line-height: 1.5; margin-bottom: 1rem; }
+  .calib-anim { margin: 1rem 0; }
+  .calib-anim svg { width: 100%; max-width: 260px; height: auto; }
+  .calib-progress { height: 8px; background: #22222e; border-radius: 4px; overflow: hidden; margin: 1rem 0; }
+  .calib-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--azur), var(--rouge)); transition: width 0.3s; }
+  .calib-status { font-size: 0.78rem; color: var(--muted); margin-bottom: 1rem; font-family: 'Courier New', monospace; }
+  .calib-box button { margin: 0.3rem 0.3rem 0; }
+  .planets-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .planet-item { display: flex; align-items: center; gap: 0.8rem; padding: 0.6rem 0.9rem; background: #0d0d12; border-left: 3px solid var(--azur); border-radius: 6px; font-size: 0.85rem; }
+  .planet-icon { font-size: 1.3rem; }
+  .planet-name { font-weight: 600; flex: 1; }
+  .planet-coords { font-family: 'Courier New', monospace; color: var(--muted); font-size: 0.75rem; }
+  .planet-mag { color: var(--muted); font-size: 0.7rem; }
+  .meteor-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .meteor-item { padding: 0.7rem 1rem; background: #0d0d12; border-left: 3px solid; border-radius: 8px; }
+  .meteor-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+  .meteor-name { font-weight: 600; }
+  .meteor-zhr { font-family: 'Courier New', monospace; color: var(--muted); font-size: 0.8rem; }
+  .meteor-info { font-size: 0.78rem; color: #c8c8d8; display: flex; gap: 0.8rem; flex-wrap: wrap; }
+  .iss-card { background: #0d0d12; border: 1px solid #22222e; border-radius: 12px; padding: 1rem; }
+  .iss-card.iss-visible { border-color: var(--azur); box-shadow: 0 0 20px rgba(91,155,213,0.3); }
+  .iss-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; font-weight: 600; }
+  .iss-icon { font-size: 1.4rem; }
+  .iss-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; }
+  .iss-info > div { display: flex; flex-direction: column; }
+  .iss-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .iss-value { font-family: 'Courier New', monospace; font-weight: 600; font-size: 0.9rem; }
+  .iss-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.8rem; line-height: 1.5; }
+  .iss-note a { color: var(--azur); }
+  .festival-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.8rem; }
+  .festival-card { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1rem; background: #0d0d12; border: 1px solid #22222e; border-radius: 10px; }
+  .festival-card[data-tradition="tamoule"] { border-left: 3px solid #FF8A80; }
+  .festival-card[data-tradition="chinoise"] { border-left: 3px solid #EF4135; }
+  .festival-card[data-tradition="musulmane"] { border-left: 3px solid #5B9BD5; }
+  .festival-card[data-tradition="chrétienne"] { border-left: 3px solid #E8E8F0; }
+  .festival-card[data-tradition="locale"] { border-left: 3px solid #FFD700; }
+  .fest-icon { font-size: 1.8rem; }
+  .fest-body { flex: 1; }
+  .fest-name { font-weight: 600; margin-bottom: 0.2rem; }
+  .fest-date { font-size: 0.78rem; color: var(--muted); font-family: 'Courier New', monospace; }
+  .fest-lieu { font-size: 0.72rem; color: var(--azur); margin-top: 0.2rem; }
+  .fest-moon { font-size: 1.5rem; opacity: 0.7; }
+  .time-slider-wrap {
+    display: flex; gap: 0.6rem; justify-content: center; align-items: center;
+    margin: 1rem 0; padding: 0.8rem; background: #0d0d12;
+    border: 1px solid #22222e; border-radius: 12px;
+  }
+  #timeSlider { width: min(400px, 60vw); }
+  #atlasSearch { width: 100%; background: #0d0d12; border: 1px solid #2a2a3a; color: var(--text); border-radius: 8px; padding: 0.5rem 0.8rem; font-size: 0.82rem; margin-bottom: 0.8rem; font-family: inherit; }
+  #atlasSearch:focus { outline: none; border-color: var(--azur); }
+  .at-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; padding: 0.7rem 0.2rem; border-top: 1px solid #22222e; border-bottom: 1px solid #22222e; margin: 0.9rem 0; font-size: 0.8rem; }
+  .at-chip { display: inline-flex; align-items: center; gap: 0.5rem; background: none; border: 0; color: var(--text); cursor: pointer; font: inherit; padding: 2px 0; }
+  .at-chip .sw { width: 20px; height: 4px; border-radius: 2px; background: var(--c); }
+  .at-chip .tot { color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.72rem; }
+  #atlasChart { display: block; width: 100%; margin-top: 0.4rem; }
+  #atlasChart text { font-family: "Segoe UI", system-ui, sans-serif; }
+  .at-grid { stroke: #22222e; stroke-width: 1; }
+  .at-grid.base { stroke: #3a3a4a; stroke-width: 1.2; }
+  .at-tick { font-size: 11px; fill: #8a8a9a; }
+  .at-month { font-size: 11.5px; fill: #b9b9c9; }
+  .at-series { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .at-insight { font-style: italic; color: #c8c8d8; font-size: 1rem; line-height: 1.6; margin: 1.1rem auto 0; max-width: 760px; text-align: center; }
+  .at-insight b { color: var(--azur); font-style: normal; }
+  .mx-scroll { overflow-x: auto; margin-top: 0.8rem; -webkit-overflow-scrolling: touch; }
+  .at-matrix { min-width: 660px; }
+  .mx-row { display: grid; grid-template-columns: 150px repeat(12, minmax(32px, 1fr)) 96px; gap: 4px; align-items: center; padding: 2px 0; }
+  .mx-hn { font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .mx-mo { text-align: center; font-size: 0.65rem; color: var(--muted); }
+  .mx-mo.hl { color: var(--azur); font-weight: 700; }
+  .mx-name { display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+  .mx-name i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .mx-name .rk { color: var(--muted); font-size: 0.65rem; width: 0.8rem; }
+  .mx-cell { height: 38px; display: flex; align-items: center; justify-content: center; font-family: 'Courier New', monospace; font-weight: 600; font-size: 0.78rem; border-radius: 6px; }
+  .mx-cell.hl { outline: 2px solid var(--azur); outline-offset: -2px; }
+  .mx-tot { font-family: 'Courier New', monospace; font-weight: 700; text-align: right; font-size: 0.85rem; }
+  .at-scale { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.8rem; font-size: 0.7rem; color: var(--muted); flex-wrap: wrap; }
+  .at-scale .strip { display: flex; }
+  .at-scale .strip i { width: 20px; height: 10px; }
+  .at-scale .cap { margin-left: auto; font-size: 0.65rem; }
+  .at-footnote { margin-top: 1rem; font-size: 0.72rem; color: var(--muted); text-align: center; line-height: 1.6; }
+  .atlas-tip {
+    position: fixed; z-index: 9999; pointer-events: none; background: var(--panel);
+    border: 1px solid var(--azur); border-radius: 10px; padding: 0.6rem 0.8rem; font-size: 0.8rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.15s; min-width: 200px;
+  }
+  .atlas-tip.show { opacity: 1; }
+  .atlas-tip .tt { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
+  .atlas-tip .tr { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0; }
+  .atlas-tip .tr i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .atlas-tip .tr b { margin-left: auto; font-family: 'Courier New', monospace; padding-left: 1rem; }
+  .atlas-tip .u { color: var(--muted); font-size: 0.65rem; }
+  .unit-tabs { display: flex; gap: 0.4rem; justify-content: flex-end; margin-bottom: 0.8rem; flex-wrap: wrap; }
+  .unit-tabs button { padding: 0.4rem 0.9rem; font-size: 0.78rem; border-radius: 20px; }
+  .unit-tabs button.active {
+    background: linear-gradient(135deg, rgba(91,155,213,0.3), rgba(91,155,213,0.08));
+    color: var(--azur); border-color: var(--azur);
+  }
+  .pvgis-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+  .pvgis-stats .stat { border-left: 3px solid var(--azur); }
+  .pvgis-stats .stat.gold { border-left-color: #FFD700; }
+  .pdf-overlay {
+    position: fixed; inset: 0; z-index: 10002; display: none;
+    background: rgba(13,13,18,0.9); backdrop-filter: blur(6px);
+    justify-content: center; align-items: center;
+  }
+  .pdf-overlay.show { display: flex; }
+  .pdf-box {
+    background: var(--panel); border: 1px solid var(--azur); border-radius: 16px;
+    padding: 1.8rem 2.4rem; text-align: center; max-width: 360px;
+  }
+  .pdf-box h3 { color: var(--azur); font-size: 1.1rem; letter-spacing: 0.1em; margin-bottom: 0.8rem; }
+  .pdf-box .spinner {
+    width: 44px; height: 44px; margin: 1rem auto;
+    border: 4px solid #22222e; border-top-color: var(--azur); border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pdf-box p { color: var(--muted); font-size: 0.85rem; }
+
+  /* Graphiques responsive */
+  .sun-chart-container {
+    position: relative; background: #0d0d12; border-radius: 12px;
+    border: 1px solid #22222e; padding: clamp(0.5rem, 2vw, 1rem);
+    height: clamp(200px, 40vw, 320px); width: 100%;
+  }
+  .solar-map-container {
+    position: relative; background: #0d0d12; border-radius: 12px;
+    border: 1px solid #22222e; padding: clamp(0.5rem, 2vw, 1rem);
+    height: clamp(240px, 45vw, 500px); width: 100%;
+  }
+  #sunChart, #compareChart, #solarMap,
+  .sun-chart-container canvas,
+  .solar-map-container canvas {
+    width: 100% !important; height: 100% !important; display: block;
+  }
+  .chart-box {
+    background: #0d0d12; border: 1px solid #22222e; border-radius: 12px;
+    padding: clamp(0.5rem, 2vw, 1rem); text-align: center; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .chart-box h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.6rem; font-weight: 500; }
+  .chart-box canvas {
+    width: 100% !important; height: auto !important;
+    max-height: clamp(200px, 55vw, 320px); display: block;
+    aspect-ratio: 1 / 0.85; flex: 1;
+  }
+  #atlasChart { display: block; width: 100%; height: auto; max-height: clamp(220px, 55vw, 320px); margin-top: 0.4rem; }
+  #pvChart, #pvgisCompareChart { max-height: clamp(180px, 45vw, 260px); }
+
+  /* Mobile nav + hamburger + FAB */
+  .mobile-nav {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9990;
+    background: rgba(22, 22, 31, 0.98); backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px); border-top: 1px solid #2a2a3a;
+    padding: 0.35rem 0.3rem calc(0.35rem + env(safe-area-inset-bottom, 0));
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+  }
+  .mobile-nav .nav-items { display: flex; justify-content: space-around; align-items: stretch; gap: 0.15rem; }
+  .mobile-nav .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.15rem; padding: 0.5rem 0.2rem; background: transparent; border: none;
+    color: var(--muted); font-size: 0.58rem; font-weight: 600; letter-spacing: 0.03em;
+    text-transform: uppercase; border-radius: 10px; cursor: pointer; transition: all 0.2s;
+    min-width: 0; white-space: nowrap;
+  }
+  .mobile-nav .nav-btn .nav-icon { font-size: 1.25rem; line-height: 1; }
+  .mobile-nav .nav-btn:active, .mobile-nav .nav-btn.active {
+    background: linear-gradient(135deg, rgba(91,155,213,0.2), rgba(91,155,213,0.05));
+    color: var(--azur);
+  }
+  .mobile-nav .nav-btn.primary-nav {
+    background: linear-gradient(135deg, #2E7BD6, #0055A4); color: #fff; flex: 1.1;
+  }
+  .mobile-nav .nav-btn.primary-nav:active { transform: scale(0.95); }
+  .mobile-menu-toggle {
+    display: none; position: fixed; top: 12px; right: 12px; z-index: 9991;
+    width: 44px; height: 44px; background: var(--panel); border: 1px solid var(--azur);
+    border-radius: 50%; color: var(--azur); font-size: 1.3rem; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4); transition: all 0.2s;
+    align-items: center; justify-content: center;
+  }
+  .mobile-menu-toggle:active { transform: scale(0.9); }
+  .mobile-menu-toggle.open { background: var(--azur); color: #fff; }
+  .mobile-drawer {
+    display: none; position: fixed; top: 0; right: 0; width: min(320px, 85vw); height: 100vh;
+    z-index: 9992; background: var(--panel); border-left: 1px solid #2a2a3a;
+    padding: 4rem 1.2rem 2rem; overflow-y: auto;
+    transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+    box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+  }
+  .mobile-drawer.open { transform: translateX(0); }
+  .mobile-drawer h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin-bottom: 0.8rem; margin-top: 1rem; }
+  .mobile-drawer h3:first-of-type { margin-top: 0; }
+  .mobile-drawer button { width: 100%; text-align: left; margin-bottom: 0.4rem; padding: 0.75rem 1rem; font-size: 0.88rem; border-radius: 10px; }
+  .mobile-drawer .drawer-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 40px; height: 40px; padding: 0;
+    background: #0d0d12; border: 1px solid #2a2a3a; border-radius: 50%;
+    color: var(--text); font-size: 1.2rem; cursor: pointer; text-align: center;
+  }
+  .fab-group { display: none; position: fixed; bottom: 90px; right: 16px; z-index: 9989; flex-direction: column; gap: 0.6rem; }
+  .fab {
+    position: relative; width: 52px; height: 52px; border-radius: 50%;
+    background: var(--panel); border: 1px solid var(--azur); color: var(--azur);
+    font-size: 1.3rem; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    transition: all 0.25s; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .fab:active { transform: scale(0.9); }
+  .fab.primary { background: linear-gradient(135deg, #2E7BD6, #0055A4); color: #fff; border: none; }
+  .fab-label {
+    position: absolute; right: 60px; top: 50%; transform: translateY(-50%);
+    background: var(--panel); color: var(--text); padding: 0.35rem 0.7rem;
+    border-radius: 6px; font-size: 0.72rem; white-space: nowrap;
+    border: 1px solid #2a2a3a; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s; font-family: 'Segoe UI', sans-serif; font-weight: 500;
+    letter-spacing: 0; text-transform: none;
+  }
+  .fab:hover .fab-label { opacity: 1; }
+  .drawer-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 9991; backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+  .refresh-indicator {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%) translateY(-100px);
+    background: var(--panel); border: 1px solid var(--azur); border-radius: 20px;
+    padding: 0.5rem 1rem; font-size: 0.78rem; color: var(--azur);
+    z-index: 9993; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4); pointer-events: none; white-space: nowrap;
+  }
+  .refresh-indicator.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 900px) {
+    body { padding: 1rem 0.7rem 6rem; }
+    h1 { font-size: 1.25rem; letter-spacing: 0.08em; }
+    .subtitle { font-size: 0.68rem; margin-bottom: 1rem; }
+    .mode-tabs, .region-tabs, .lang-tabs { display: none !important; }
+    .mobile-nav { display: block; }
+    .mobile-menu-toggle { display: flex; }
+    .mobile-drawer { display: block; }
+    .drawer-backdrop { display: block; }
+    .fab-group { display: flex; }
+    .card { padding: 1rem; border-radius: 14px; }
+    .section-title { font-size: 0.88rem; margin: 1.4rem 0 0.7rem; }
+    .info-banner { font-size: 0.75rem; padding: 0.7rem 0.9rem; }
+    .main-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .chart-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .photo-mode { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .events-grid { grid-template-columns: 1fr; }
+    .festival-grid { grid-template-columns: 1fr; }
+    .weather-grid { grid-template-columns: repeat(3, 1fr); }
+    .forecast-grid { grid-template-columns: repeat(2, 1fr); }
+    .key-times-table, .compare-table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+    .key-times-table th, .key-times-table td, .compare-table th, .compare-table td { padding: 0.5rem 0.7rem; font-size: 0.78rem; }
+    .sun-chart-container { height: clamp(200px, 50vw, 280px); padding: 0.7rem; }
+    .solar-map-container { height: clamp(240px, 60vw, 380px); padding: 0.7rem; }
+    .chart-box { padding: 0.7rem; }
+    .chart-box canvas { max-height: clamp(200px, 55vw, 280px); }
+    .chart-box h4 { font-size: 0.72rem; }
+    #mapReunion { height: 320px; }
+    .time-slider-wrap { flex-direction: column; padding: 0.7rem; }
+    #timeSlider { width: 100%; }
+    .controls { flex-direction: column; gap: 0.5rem; align-items: stretch; }
+    .controls input, .controls button { width: 100%; }
+    .export-bar { flex-direction: column; gap: 0.5rem; }
+    .export-bar button { width: 100%; }
+    .compass { width: min(260px, 75vw); }
+    .direction-badge { font-size: 1.6rem; letter-spacing: 0.2em; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .city-selector { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); padding: 0.7rem 0.9rem; max-height: 220px; }
+    .city-btn { padding: 0.5rem 0.6rem; font-size: 0.72rem; }
+    .city-btn .city-name { font-size: 0.78rem; }
+    .mode-compare > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+    .pv-grid { grid-template-columns: 1fr; }
+    .pdf-box { padding: 1.4rem 1.6rem; }
+    .calib-box { padding: 1.4rem; }
+    footer { margin-top: 1.5rem; padding-bottom: 0.5rem; }
+  }
+  @media (max-width: 480px) {
+    h1 { font-size: 1.1rem; }
+    .subtitle { font-size: 0.62rem; }
+    .weather-grid { grid-template-columns: repeat(2, 1fr); }
+    .forecast-grid { grid-template-columns: repeat(2, 1fr); }
+    .mobile-nav .nav-btn { font-size: 0.52rem; padding: 0.4rem 0.1rem; }
+    .mobile-nav .nav-btn .nav-icon { font-size: 1.1rem; }
+    .stat-value { font-size: 0.82rem; }
+    .direction-badge { font-size: 1.4rem; }
+    .sun-chart-container { height: clamp(180px, 55vw, 240px); padding: 0.6rem; }
+    .solar-map-container { height: clamp(220px, 65vw, 320px); padding: 0.6rem; }
+    .chart-box { padding: 0.6rem; }
+    .chart-box h4 { font-size: 0.68rem; margin-bottom: 0.4rem; }
+    .chart-box canvas { max-height: clamp(180px, 55vw, 240px); }
+    .chart-grid { grid-template-columns: 1fr; gap: 0.7rem; }
+    .compass { width: min(240px, 70vw); }
+    #atlasChart { max-height: 240px; }
+    #pvChart, #pvgisCompareChart { max-height: 180px; }
+    #mapReunion { height: 260px; }
+    #modeSolo .chart-grid .chart-box:nth-child(4),
+    #modeSolo .chart-grid .chart-box:nth-child(5),
+    #modeSolo .chart-grid .chart-box:nth-child(6) { display: none; }
+  }
+  @media (max-width: 380px) {
+    .sun-chart-container { height: 180px; }
+    .solar-map-container { height: 220px; }
+    .chart-box canvas { max-height: 180px; }
+    .mobile-nav .nav-btn { font-size: 0.48rem; }
+  }
+  @media (min-width: 901px) {
+    .mobile-nav, .mobile-menu-toggle, .mobile-drawer, .drawer-backdrop, .fab-group { display: none !important; }
+  }
+  button:focus-visible, .city-btn:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--azur); outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleDrawer()" aria-label="Menu">☰</button>
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+<aside class="mobile-drawer" id="mobileDrawer">
+  <button class="drawer-close" onclick="closeDrawer()" aria-label="Fermer">✕</button>
+  <h3>🎯 Mode</h3>
+  <button onclick="switchMode('solo'); closeDrawer()" id="drawerSolo">🔮 Mode solo</button>
+  <button onclick="switchMode('compare'); closeDrawer()">🌐 Comparer 2 villes</button>
+  <button onclick="switchMode('atlas'); closeDrawer()">📊 Atlas kWh/m²</button>
+  <button onclick="switchMode('pv'); closeDrawer()">🔋 Simulateur PV</button>
+  <button onclick="switchMode('comparePvgis'); closeDrawer()">🛰️ PVGIS vs Modèle</button>
+  <h3>🌍 Région</h3>
+  <button onclick="switchRegion('REUNION'); closeDrawer()">🇷🇪 La Réunion (24 communes)</button>
+  <button onclick="switchRegion('PARIS'); closeDrawer()">🇫🇷 Paris</button>
+  <button onclick="switchRegion('EUROPE'); closeDrawer()">🇪🇺 Europe (44 capitales)</button>
+  <h3>🌐 Langue</h3>
+  <button onclick="setLanguage('fr'); closeDrawer()">🇫🇷 Français</button>
+  <button onclick="setLanguage('en'); closeDrawer()">🇬🇧 English</button>
+  <button onclick="setLanguage('cr'); closeDrawer()">🇷🇪 Kréol</button>
+  <h3>📤 Export</h3>
+  <button onclick="exportPDF(); closeDrawer()">📄 PDF éphémérides</button>
+  <button onclick="exportPDFWithCharts(); closeDrawer()">📊 PDF + graphiques</button>
+  <button onclick="exportAtlasPNG(); closeDrawer()">📸 Atlas PNG</button>
+</aside>
+
+<div class="refresh-indicator" id="refreshIndicator">🔄 Actualisation…</div>
+
+<div class="container">
+
+  <h1 data-i18n="title">🌞 Oracle Solaire — Europe</h1>
+  <p class="subtitle">v19.0 · 44 capitales · La Réunion · Lune détaillée · PDF · Bleu-Blanc-Rouge 🇫🇷</p>
+
+  <div class="lang-tabs">
+    <button onclick="setLanguage('fr')" id="langFr" class="active">🇫🇷 FR</button>
+    <button onclick="setLanguage('en')" id="langEn">🇬🇧 EN</button>
+    <button onclick="setLanguage('cr')" id="langCr">🇷🇪 CR</button>
+  </div>
+
+  <div class="mode-tabs">
+    <button onclick="switchMode('solo')" id="tabSolo" class="active" data-i18n="mode.solo">🔮 Mode solo</button>
+    <button onclick="switchMode('compare')" id="tabCompare" data-i18n="mode.compare">🌐 Comparer 2 villes</button>
+    <button onclick="switchMode('atlas')" id="tabAtlas" data-i18n="mode.atlas">📊 Atlas kWh/m²</button>
+    <button onclick="switchMode('pv')" id="tabPv" data-i18n="mode.pv">🔋 Simulateur PV</button>
+    <button onclick="switchMode('comparePvgis')" id="tabComparePvgis">🛰️ PVGIS vs Modèle</button>
+  </div>
+
+  <div class="fav-bar" id="favBar" style="display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;"></div>
+
+  <div class="mode-solo active" id="modeSolo">
+    <div class="region-tabs">
+      <button onclick="switchRegion('REUNION')" id="tabReunion" class="active">🇷🇪 La Réunion (24)</button>
+      <button onclick="switchRegion('PARIS')" id="tabParis">🇫🇷 Paris</button>
+      <button onclick="switchRegion('EUROPE')" id="tabEurope">🇪🇺 Europe (44 capitales)</button>
+    </div>
+
+    <div class="city-selector" id="citySelector"></div>
+
+    <div class="main-grid">
+      <div class="card compass-wrap">
+        <div class="compass">
+          <svg viewBox="0 0 340 340">
+            <circle cx="170" cy="170" r="150" fill="none" stroke="#22222e" stroke-width="1"/>
+            <circle cx="170" cy="170" r="120" fill="none" stroke="#1a1a2e" stroke-width="1"/>
+            <circle cx="170" cy="170" r="90"  fill="none" stroke="#1a1a2e" stroke-width="1" stroke-dasharray="2 4"/>
+            <circle cx="170" cy="170" r="60"  fill="none" stroke="#1a1a2e" stroke-width="1" stroke-dasharray="1 6"/>
+            <line x1="170" y1="20"  x2="170" y2="320" stroke="#22222e" stroke-width="1"/>
+            <line x1="20"  y1="170" x2="320" y2="170" stroke="#22222e" stroke-width="1"/>
+            <g id="arrow" class="arrow" style="color:#5B9BD5">
+              <polygon points="170,50 158,170 170,155 182,170" fill="currentColor"/>
+              <polygon points="170,290 162,170 170,185 178,170" fill="currentColor" opacity="0.25"/>
+            </g>
+            <circle id="sunDot"  class="sun-dot"  cx="170" cy="170" r="6" fill="#EF4135" opacity="0"/>
+            <circle id="moonDot" class="moon-dot" cx="170" cy="170" r="5" fill="#c8d4e8" opacity="0"/>
+            <text class="label" x="170" y="15"  text-anchor="middle" fill="#5B9BD5">N</text>
+            <text class="label" x="170" y="335" text-anchor="middle" fill="#EF4135">S</text>
+            <text class="label" x="332" y="176" text-anchor="middle" fill="#E8E8F0">E</text>
+            <text class="label" x="8"   y="176" text-anchor="middle" fill="#FF8A80">O</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="card info-panel">
+        <div class="direction-badge" id="resDir">—</div>
+        <div class="tagline" id="resTag">—</div>
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-label">Azimut soleil</div><div class="stat-value" id="resAzimuth">—</div></div>
+          <div class="stat"><div class="stat-label">Hauteur soleil</div><div class="stat-value" id="resAltitude">—</div><div class="bar"><div class="bar-fill" id="resBar"></div></div></div>
+          <div class="stat"><div class="stat-label">Distance Lune</div><div class="stat-value" id="resMoonDist">—</div></div>
+          <div class="stat"><div class="stat-label">Couleur</div><div class="stat-value" id="resColor">—</div></div>
+        </div>
+        <div class="advice" id="resAdvice">—</div>
+      </div>
+    </div>
+
+    <div class="info-banner" id="infoBanner">—</div>
+
+    <h2 class="section-title">🌤️ Météo live</h2>
+    <div class="card"><div class="weather-grid" id="weatherGrid"><em style="color:var(--muted);font-size:.85rem;">Chargement…</em></div></div>
+
+    <h2 class="section-title">🔮 Prévisions 7 jours</h2>
+    <div class="card"><div class="forecast-grid" id="forecastGrid"></div></div>
+
+    <h2 class="section-title">🪐 Planètes visibles</h2>
+    <div class="card"><div id="planetsList" class="planets-list"></div></div>
+
+    <h2 class="section-title">🌠 Pluies de météores</h2>
+    <div class="card"><div id="meteorList" class="meteor-list"></div></div>
+
+    <h2 class="section-title">🛰️ Station Spatiale (ISS)</h2>
+    <div class="card"><div id="issList"></div></div>
+
+    <h2 class="section-title">📅 Fêtes locales</h2>
+    <div class="card"><div id="creoleCalendar" class="festival-grid"></div></div>
+
+    <h2 class="section-title">🌅 Éphémérides complètes</h2>
+    <div class="card">
+      <table class="key-times-table">
+        <thead><tr><th>Événement</th><th>Soleil ☀️</th><th>Lune 🌙</th></tr></thead>
+        <tbody>
+          <tr><td>Nuit astronomique</td><td class="val-sun" id="sun-night">—</td><td class="val-moon">—</td></tr>
+          <tr><td>Aube nautique</td><td class="val-sun" id="sun-nautical-dawn">—</td><td class="val-moon">—</td></tr>
+          <tr><td>Aube civile</td><td class="val-sun" id="sun-dawn">—</td><td class="val-moon">—</td></tr>
+          <tr><td>🌅 Lever</td><td class="val-sun" id="sunriseTime">—</td><td class="val-moon" id="moonriseTime">—</td></tr>
+          <tr><td>Fin du lever</td><td class="val-sun" id="sun-sunrise-end">—</td><td class="val-moon">—</td></tr>
+          <tr><td>🏆 Fin heure dorée matin</td><td class="val-sun" id="sun-golden-end">—</td><td class="val-moon">—</td></tr>
+          <tr><td>☀️ Midi solaire</td><td class="val-sun" id="solarNoonTime">—</td><td class="val-moon">—</td></tr>
+          <tr><td>🏆 Début heure dorée soir</td><td class="val-sun" id="sun-golden">—</td><td class="val-moon">—</td></tr>
+          <tr><td>🌇 Coucher</td><td class="val-sun" id="sunsetTime">—</td><td class="val-moon" id="moonsetTime">—</td></tr>
+          <tr><td>Crépuscule civil</td><td class="val-sun" id="sun-dusk">—</td><td class="val-moon">—</td></tr>
+          <tr><td>Crépuscule nautique</td><td class="val-sun" id="sun-nautical-dusk">—</td><td class="val-moon">—</td></tr>
+          <tr><td>Nuit</td><td class="val-sun" id="sun-night-start">—</td><td class="val-moon">—</td></tr>
+          <tr><td>⏱️ Durée visible</td><td class="val-sun" id="dayLength">—</td><td class="val-moon" id="moonDuration">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="section-title">📐 Données détaillées</h2>
+    <div class="card">
+      <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="stat"><div class="stat-label">Longueur d'ombre (1m)</div><div class="stat-value" id="shadow-length">—</div></div>
+        <div class="stat"><div class="stat-label">Distance Lune</div><div class="stat-value" id="moon-distance">—</div></div>
+        <div class="stat"><div class="stat-label">Angle de phase</div><div class="stat-value" id="moon-angle">—</div></div>
+        <div class="stat"><div class="stat-label">Âge de la Lune</div><div class="stat-value" id="moon-age">—</div></div>
+        <div class="stat"><div class="stat-label">Phase lunaire</div><div class="stat-value" id="moonPhase">—</div></div>
+        <div class="stat"><div class="stat-label">Illumination</div><div class="stat-value" id="moonIllum">—</div></div>
+      </div>
+    </div>
+
+    <h2 class="section-title">🗺️ Carte solaire</h2>
+    <div class="card">
+      <div class="solar-map-container"><canvas id="solarMap"></canvas></div>
+      <div class="chart-legend">
+        <span><div class="dot" style="background:#EF4135"></div>Aujourd'hui</span>
+        <span><div class="dot" style="background:#FF6B5E"></div>Solstice d'été</span>
+        <span><div class="dot" style="background:#5B9BD5"></div>Équinoxes</span>
+        <span><div class="dot" style="background:#E8E8F0"></div>Solstice d'hiver</span>
+      </div>
+      <div class="solar-info" id="solarInfo"></div>
+    </div>
+
+    <h2 class="section-title">📊 Course du Soleil et de la Lune sur 24h</h2>
+    <div class="card">
+      <div class="sun-chart-container"><canvas id="sunChart"></canvas></div>
+    </div>
+
+    <h2 class="section-title">📈 Graphiques complémentaires</h2>
+    <div class="chart-grid">
+      <div class="chart-box"><h4>🌹 Rose des vents solaire</h4><canvas id="azimuthRose"></canvas></div>
+      <div class="chart-box"><h4>📐 Hauteur solaire (polaire)</h4><canvas id="altitudePolar"></canvas></div>
+      <div class="chart-box"><h4>🌙 Course de la Lune sur 24h</h4><canvas id="moonChart"></canvas></div>
+      <div class="chart-box"><h4>⚖️ Comparaison Soleil / Lune</h4><canvas id="comparisonChart"></canvas></div>
+    </div>
+
+    <h2 class="section-title">🌙 Direction de la Lune — analyses détaillées</h2>
+
+    <div class="main-grid">
+      <div class="card compass-wrap">
+        <div class="compass">
+          <svg viewBox="0 0 340 340">
+            <circle cx="170" cy="170" r="150" fill="none" stroke="#22222e" stroke-width="1"/>
+            <circle cx="170" cy="170" r="120" fill="none" stroke="#1a1a2e" stroke-width="1"/>
+            <circle cx="170" cy="170" r="90"  fill="none" stroke="#1a1a2e" stroke-width="1" stroke-dasharray="2 4"/>
+            <circle cx="170" cy="170" r="60"  fill="none" stroke="#1a1a2e" stroke-width="1" stroke-dasharray="1 6"/>
+            <line x1="170" y1="20"  x2="170" y2="320" stroke="#22222e" stroke-width="1"/>
+            <line x1="20"  y1="170" x2="320" y2="170" stroke="#22222e" stroke-width="1"/>
+            <polyline id="moonPath24h" fill="none" stroke="#c8d4e8" stroke-width="2" stroke-dasharray="4 3" opacity="0.7"/>
+            <g id="moonArrow" class="arrow" style="color:#c8d4e8">
+              <polygon points="170,40 158,170 170,155 182,170" fill="currentColor"/>
+              <polygon points="170,300 162,170 170,185 178,170" fill="currentColor" opacity="0.25"/>
+            </g>
+            <circle id="moonNowHalo" cx="170" cy="170" r="16" fill="none" stroke="#c8d4e8" stroke-width="1.5" opacity="0"/>
+            <circle id="moonNowDot"  cx="170" cy="170" r="7" fill="#c8d4e8" opacity="0"/>
+            <circle id="sunRefDot" cx="170" cy="170" r="5" fill="#EF4135" opacity="0"/>
+            <text class="label" x="170" y="15"  text-anchor="middle" fill="#5B9BD5">N</text>
+            <text class="label" x="170" y="335" text-anchor="middle" fill="#EF4135">S</text>
+            <text class="label" x="332" y="176" text-anchor="middle" fill="#E8E8F0">E</text>
+            <text class="label" x="8"   y="176" text-anchor="middle" fill="#FF8A80">O</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="card info-panel">
+        <div class="direction-badge" id="moonDirBadge" style="color:var(--moon)">—</div>
+        <div class="tagline" id="moonDirTag">—</div>
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-label">Azimut Lune</div><div class="stat-value" id="moonAzimuth">—</div></div>
+          <div class="stat"><div class="stat-label">Hauteur Lune</div><div class="stat-value" id="moonAltitude">—</div><div class="bar"><div class="bar-fill" id="moonBar" style="background:linear-gradient(90deg,#5B9BD5,#c8d4e8)"></div></div></div>
+          <div class="stat"><div class="stat-label">Écart Soleil-Lune</div><div class="stat-value" id="sunMoonAngle">—</div></div>
+          <div class="stat"><div class="stat-label">Secteur lunaire</div><div class="stat-value" id="moonQuadrant">—</div></div>
+        </div>
+        <div class="advice" id="moonAdvice" style="color:var(--moon)">—</div>
+      </div>
+    </div>
+
+    <div class="chart-grid" style="margin-top:1.2rem;">
+      <div class="chart-box"><h4>🌙 Rose lunaire (azimut/heure)</h4><canvas id="moonAzimuthRose"></canvas></div>
+      <div class="chart-box"><h4>📐 Hauteur lunaire (polaire)</h4><canvas id="moonAltitudePolar"></canvas></div>
+      <div class="chart-box"><h4>🔄 Azimut Lune sur 24h</h4><canvas id="moonAzimuthTimeline"></canvas></div>
+      <div class="chart-box"><h4>⚖️ Azimut comparé Soleil / Lune</h4><canvas id="moonSunAzimuthCompare"></canvas></div>
+      <div class="chart-box"><h4>📊 Rose comparée 16 secteurs</h4><canvas id="moonSunSectors"></canvas></div>
+      <div class="chart-box"><h4>🎯 Quadrants célestes occupés</h4><canvas id="moonQuadrantsChart"></canvas></div>
+    </div>
+
+    <h2 class="section-title">🕐 Positions lunaires heure par heure</h2>
+    <div class="card">
+      <div class="mx-scroll">
+        <table class="key-times-table" style="min-width:600px;">
+          <thead>
+            <tr><th>Heure</th><th>Azimut</th><th>Direction</th><th>Hauteur</th><th>État</th><th>Illumination</th></tr>
+          </thead>
+          <tbody id="moonHourlyTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section-title">🌍 Carte interactive — relief 3D</h2>
+    <div class="card">
+      <div id="mapReunion"></div>
+      <p style="text-align:center; font-size:0.75rem; color:var(--muted); margin-top:0.8rem;">Clique sur un marqueur · Ctrl+clic pour pivoter en 3D</p>
+    </div>
+
+    <h2 class="section-title">📅 Solstices & Équinoxes</h2>
+    <div class="events-grid" id="eventsGrid"></div>
+
+    <h2 class="section-title">📸 Mode Photographe</h2>
+    <div class="photo-mode" id="photoMode"></div>
+
+    <div class="time-slider-wrap">
+      <input type="range" id="timeSlider" min="0" max="23.99" step="0.05" value="12">
+      <button onclick="toggleTimeAnimation()" id="btnAnimate">▶️ Animer</button>
+    </div>
+
+    <div class="export-bar">
+      <button class="primary" onclick="startARReal()">📷 Mode AR réel</button>
+      <button onclick="startAR()">📷 Mode AR simplifié</button>
+      <button onclick="openCalibration()">🧭 Calibrer boussole</button>
+    </div>
+  </div>
+
+  <div class="mode-compare" id="modeCompare">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+      <div style="background:var(--panel);border:1px solid rgba(91,155,213,0.45);border-radius:14px;padding:1rem;">
+        <h4 style="color:var(--city1);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.6rem;">🔵 Ville 1</h4>
+        <select id="city1Select" style="width:100%;"></select>
+      </div>
+      <div style="background:var(--panel);border:1px solid rgba(239,65,53,0.45);border-radius:14px;padding:1rem;">
+        <h4 style="color:var(--city2);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.6rem;">🔴 Ville 2</h4>
+        <select id="city2Select" style="width:100%;"></select>
+      </div>
+    </div>
+
+    <div class="card info-panel" style="margin-bottom:1.2rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8rem;background:#0d0d12;border-radius:10px;">
+        <div style="text-align:center;flex:1;">
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Ville 1</div>
+          <div id="compareCity1Name" style="color:var(--city1);font-weight:600;margin-top:0.3rem;">—</div>
+        </div>
+        <div style="color:var(--muted);font-size:1.2rem;padding:0 0.5rem;">vs</div>
+        <div style="text-align:center;flex:1;">
+          <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Ville 2</div>
+          <div id="compareCity2Name" style="color:var(--city2);font-weight:600;margin-top:0.3rem;">—</div>
+        </div>
+      </div>
+      <div class="advice" id="compareAdvice" style="color:var(--azur);">—</div>
+    </div>
+
+    <h2 class="section-title">📊 Comparaison des éphémérides</h2>
+    <div class="card">
+      <table class="compare-table">
+        <thead><tr><th>Événement</th><th id="th-city1" class="col-city1">Ville 1</th><th id="th-city2" class="col-city2">Ville 2</th><th>Écart</th></tr></thead>
+        <tbody id="compareTableBody"></tbody>
+      </table>
+    </div>
+
+    <h2 class="section-title">📊 Trajectoires comparées sur 24h</h2>
+    <div class="card">
+      <div class="sun-chart-container"><canvas id="compareChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="mode-atlas" id="modeAtlas">
+    <div class="info-banner">
+      📊 <strong>Atlas annuel de l'ensoleillement</strong> — comparez jusqu'à 4 villes sur les 12 mois de l'année, en kWh/m².
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:0.8rem;">
+        <div>
+          <h2 style="font-size:1rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);">📊 Comparaison annuelle</h2>
+          <p style="font-size:.78rem;color:var(--muted);margin-top:.25rem;">Courbes mensuelles · janvier → décembre · GHI</p>
+        </div>
+        <div class="unit-tabs">
+          <button id="unitTotal" class="active">Cumul mensuel</button>
+          <button id="unitDaily">Moyenne / jour</button>
+        </div>
+      </div>
+      <input id="atlasSearch" type="text" placeholder="🔍 Rechercher une ville…" autocomplete="off">
+      <div class="city-selector" id="atlasSelector" style="margin:0 0 1rem; max-height:220px;"></div>
+      <div class="at-legend" id="atlasLegend"></div>
+      <svg id="atlasChart" role="img" aria-label="Courbes mensuelles d'ensoleillement"></svg>
+      <p class="at-insight" id="atlasInsight"></p>
+    </div>
+    <div class="card" style="margin-top:1.2rem;">
+      <h2 style="font-size:1rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);text-align:center;">🌡️ Thermomètre annuel — kWh/m²</h2>
+      <p style="font-size:.78rem;color:var(--muted);text-align:center;margin-top:.25rem;">Classement sur l'année · cumul mensuel par ville</p>
+      <div class="mx-scroll"><div class="at-matrix" id="atlasMatrix"></div></div>
+      <div class="at-scale" id="atlasScale"></div>
+    </div>
+    <p class="at-footnote">Données GHI indicatives — à but comparatif, ne remplace pas une étude PV (PVGIS, Global Solar Atlas).</p>
+  </div>
+
+  <div class="mode-pv" id="modePv">
+    <div class="info-banner">
+      🔋 <strong>Simulateur photovoltaïque</strong> — estimation production, ROI et CO₂ évité.
+    </div>
+    <div class="card">
+      <div class="pv-grid">
+        <div class="pv-field"><label>Ville</label><select id="pvCity"></select></div>
+        <div class="pv-field"><label>Puissance crête (kWc)</label><input type="number" id="pvPower" value="3" min="0.5" max="100" step="0.5"></div>
+        <div class="pv-field"><label>Inclinaison (°)</label><input type="number" id="pvTilt" value="35" min="0" max="60" step="5"></div>
+        <div class="pv-field"><label>Orientation</label>
+          <select id="pvAzimuth">
+            <option value="180" selected>Sud (optimal hém. nord)</option>
+            <option value="135">Sud-Est</option>
+            <option value="90">Est</option>
+            <option value="45">Nord-Est</option>
+            <option value="0">Nord (optimal hém. sud)</option>
+            <option value="315">Nord-Ouest</option>
+            <option value="270">Ouest</option>
+            <option value="225">Sud-Ouest</option>
+          </select>
+        </div>
+        <div class="pv-field"><label>Prix installation (€/kWc)</label><input type="number" id="pvPrice" value="1800" min="500" max="5000" step="100"></div>
+        <div class="pv-field"><label>Tarif revente (€/kWh)</label><input type="number" id="pvTarif" value="0.13" min="0" max="1" step="0.01"></div>
+      </div>
+      <div class="pv-result" id="pvResult"></div>
+    </div>
+    <div class="card" style="margin-top:1.2rem;">
+      <h4 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:0.8rem;">📈 Production mensuelle estimée</h4>
+      <div class="sun-chart-container" style="height:280px;"><canvas id="pvChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="mode-comparePvgis" id="modeComparePvgis">
+    <div class="info-banner">
+      🛰️ <strong>Comparaison PVGIS vs modèle simplifié</strong> — visualise l'écart avec les données réelles de la Commission Européenne (PVGIS 5.3).
+    </div>
+    <div class="card">
+      <select id="pvgisCitySelect" style="width:100%;margin-bottom:1rem;"></select>
+      <div id="pvgisCompareContent">
+        <div class="pvgis-stats">
+          <div class="stat"><div class="stat-label">Modèle simplifié</div><div class="stat-value">—</div></div>
+          <div class="stat gold"><div class="stat-label">PVGIS 5.3</div><div class="stat-value">—</div></div>
+          <div class="stat"><div class="stat-label">Écart</div><div class="stat-value">—</div></div>
+          <div class="stat"><div class="stat-label">Inclinaison testée</div><div class="stat-value">—</div></div>
+        </div>
+        <div class="sun-chart-container" style="height:280px;">
+          <canvas id="pvgisCompareChart"></canvas>
+        </div>
+        <div class="chart-legend" style="margin-top:0.8rem;">
+          <span><div class="dot" style="background:#5B9BD5"></div>Modèle simplifié</span>
+          <span><div class="dot" style="background:#FFD700"></div>PVGIS réel</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1.5rem;">
+    <div class="geo-status" id="geoStatus">📍 Prêt</div>
+    <div class="controls">
+      <input type="date" id="dateInput">
+      <input type="time" id="timeInput" value="12:00">
+      <button onclick="refreshAll()">🔮 Consulter</button>
+      <button onclick="randomize()">🎲 Aléatoire</button>
+      <button onclick="nowButton()">⏱️ Maintenant</button>
+      <button onclick="locateMe()">📡 Ma position</button>
+      <button onclick="shareLink()">🔗 Partager</button>
+    </div>
+    <div class="export-bar">
+      <button class="primary" onclick="exportPDF()">📄 Export PDF éphémérides</button>
+      <button onclick="exportPDFWithCharts()">📊 Export PDF + graphiques</button>
+      <button class="primary" onclick="exportAtlasPNG()">📸 Exporter l'Atlas (PNG)</button>
+      <button onclick="requestNotificationPermission()">🔔 Notifications</button>
+    </div>
+  </div>
+
+  <footer>Oracle Solaire v4.0 · Europe · La Réunion · 🇫🇷 · MIT</footer>
+</div>
+
+<video id="arVideo" autoplay playsinline muted></video>
+<div id="arOverlay"><canvas id="arCanvas"></canvas></div>
+<button id="arClose" onclick="stopAR()">✕</button>
+<button id="arShutter" onclick="captureAR()" title="Capturer">📸</button>
+<div id="arInfo">📷 Mode AR — pointez vers le Soleil</div>
+
+<div class="calib-overlay" id="calibOverlay">
+  <div class="calib-box">
+    <h3>🧭 Calibration boussole</h3>
+    <p>Pour une précision maximale en AR, faites décrire un <b>8</b> à votre téléphone.</p>
+    <div class="calib-anim">
+      <svg viewBox="0 0 200 100">
+        <path d="M20 50 Q40 10 60 50 T100 50 T140 50 T180 50" fill="none" stroke="#5B9BD5" stroke-width="3" stroke-dasharray="200" stroke-dashoffset="200">
+          <animate attributeName="stroke-dashoffset" from="200" to="0" dur="2s" repeatCount="indefinite"/>
+        </path>
+      </svg>
+    </div>
+    <div class="calib-progress"><div class="calib-bar" id="calibBar"></div></div>
+    <p class="calib-status" id="calibStatus">En attente du gyroscope…</p>
+    <button onclick="closeCalibration()" class="primary">✅ C'est bon</button>
+    <button onclick="closeCalibration()">Ignorer</button>
+  </div>
+</div>
+
+<div class="pdf-overlay" id="pdfOverlay">
+  <div class="pdf-box">
+    <h3>📄 Génération du PDF</h3>
+    <div class="spinner"></div>
+    <p id="pdfStatus">Préparation des éphémérides…</p>
+  </div>
+</div>
+
+<nav class="mobile-nav" id="mobileNav">
+  <div class="nav-items">
+    <button class="nav-btn" onclick="switchMode('solo')" id="navSolo"><span class="nav-icon">🔮</span><span>Solo</span></button>
+    <button class="nav-btn" onclick="switchMode('atlas')" id="navAtlas"><span class="nav-icon">📊</span><span>Atlas</span></button>
+    <button class="nav-btn primary-nav" onclick="nowButton()" id="navNow"><span class="nav-icon">⏱️</span><span>Maintenant</span></button>
+    <button class="nav-btn" onclick="switchMode('pv')" id="navPv"><span class="nav-icon">🔋</span><span>PV</span></button>
+    <button class="nav-btn" onclick="shareLink()" id="navShare"><span class="nav-icon">🔗</span><span>Partager</span></button>
+  </div>
+</nav>
+
+<div class="fab-group" id="fabGroup">
+  <button class="fab primary" onclick="refreshAll(); showRefreshIndicator()" title="Actualiser"><span>🔄</span><span class="fab-label">Actualiser</span></button>
+  <button class="fab" onclick="nowButton(); showRefreshIndicator()" title="Maintenant"><span>⏱️</span><span class="fab-label">Maintenant</span></button>
+  <button class="fab" onclick="locateMe()" title="Ma position"><span>📡</span><span class="fab-label">Ma position</span></button>
+  <button class="fab" onclick="exportPDF()" title="Export PDF"><span>📄</span><span class="fab-label">PDF</span></button>
+</div>
+
+<div class="atlas-tip" id="atlasTip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   0. SERVICE WORKER (PWA offline)
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  const swCode = `self.addEventListener('install',e=>self.skipWaiting());
+self.addEventListener('activate',e=>self.clients.claim());
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(caches.open('oracle-v19').then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(res=>{if(res.ok&&res.type==='basic')c.put(e.request,res.clone());return res;}).catch(()=>c.match(e.request)))));
+});`;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+}
+
+/* ============================================================
+   1. LOCATIONS — LA RÉUNION + PARIS
+   ============================================================ */
+const LOCATIONS = {
+  SAINT_DENIS: { name:"La Réunion", city:"Saint-Denis", lat:-20.8789, lon:55.4481, altitude:23, timezone:4, dst:false, hemisphere:"sud", population:155634, region:"Nord", sf:0.93 },
+  SAINT_PAUL: { name:"La Réunion", city:"Saint-Paul", lat:-21.0096, lon:55.2707, altitude:10, timezone:4, dst:false, hemisphere:"sud", population:108088, region:"Ouest", sf:0.98 },
+  SAINT_PIERRE: { name:"La Réunion", city:"Saint-Pierre", lat:-21.3393, lon:55.4781, altitude:35, timezone:4, dst:false, hemisphere:"sud", population:85038, region:"Sud", sf:0.98 },
+  LE_TAMPON: { name:"La Réunion", city:"Le Tampon", lat:-21.2783, lon:55.5150, altitude:550, timezone:4, dst:false, hemisphere:"sud", population:82579, region:"Sud", sf:0.88 },
+  SAINT_ANDRE: { name:"La Réunion", city:"Saint-André", lat:-20.9603, lon:55.6503, altitude:20, timezone:4, dst:false, hemisphere:"sud", population:58885, region:"Est", sf:0.85 },
+  SAINT_LOUIS: { name:"La Réunion", city:"Saint-Louis", lat:-21.2861, lon:55.4111, altitude:30, timezone:4, dst:false, hemisphere:"sud", population:54941, region:"Sud", sf:0.97 },
+  SAINT_JOSEPH: { name:"La Réunion", city:"Saint-Joseph", lat:-21.3789, lon:55.6197, altitude:30, timezone:4, dst:false, hemisphere:"sud", population:39207, region:"Sud", sf:0.90 },
+  SAINT_BENOIT: { name:"La Réunion", city:"Saint-Benoît", lat:-21.0344, lon:55.7131, altitude:30, timezone:4, dst:false, hemisphere:"sud", population:38604, region:"Est", sf:0.82 },
+  SAINTE_MARIE: { name:"La Réunion", city:"Sainte-Marie", lat:-20.8967, lon:55.5494, altitude:10, timezone:4, dst:false, hemisphere:"sud", population:37093, region:"Nord", sf:0.94 },
+  LA_POSSESSION: { name:"La Réunion", city:"La Possession", lat:-20.9264, lon:55.3350, altitude:20, timezone:4, dst:false, hemisphere:"sud", population:36390, region:"Ouest", sf:0.96 },
+  LE_PORT: { name:"La Réunion", city:"Le Port", lat:-20.9378, lon:55.2922, altitude:10, timezone:4, dst:false, hemisphere:"sud", population:33670, region:"Ouest", sf:1.00 },
+  SAINT_LEU: { name:"La Réunion", city:"Saint-Leu", lat:-21.1706, lon:55.2881, altitude:10, timezone:4, dst:false, hemisphere:"sud", population:34589, region:"Ouest", sf:1.00 },
+  SAINTE_SUZANNE: { name:"La Réunion", city:"Sainte-Suzanne", lat:-20.9064, lon:55.6072, altitude:20, timezone:4, dst:false, hemisphere:"sud", population:24203, region:"Nord", sf:0.90 },
+  PETITE_ILE: { name:"La Réunion", city:"Petite-Île", lat:-21.3533, lon:55.5667, altitude:30, timezone:4, dst:false, hemisphere:"sud", population:12920, region:"Sud", sf:0.95 },
+  BRAS_PANON: { name:"La Réunion", city:"Bras-Panon", lat:-21.0006, lon:55.6108, altitude:20, timezone:4, dst:false, hemisphere:"sud", population:12143, region:"Est", sf:0.85 },
+  ENTRE_DEUX: { name:"La Réunion", city:"Entre-Deux", lat:-21.2706, lon:55.4522, altitude:450, timezone:4, dst:false, hemisphere:"sud", population:6116, region:"Sud", sf:0.90 },
+  PLAINE_PALMISTES: { name:"La Réunion", city:"La Plaine-des-Palmistes", lat:-21.1339, lon:55.6333, altitude:600, timezone:4, dst:false, hemisphere:"sud", population:5290, region:"Est", sf:0.75 },
+  SAINTE_ROSE: { name:"La Réunion", city:"Sainte-Rose", lat:-21.1272, lon:55.7933, altitude:10, timezone:4, dst:false, hemisphere:"sud", population:3362, region:"Est", sf:0.88 },
+  TROIS_BASSINS: { name:"La Réunion", city:"Trois-Bassins", lat:-21.0978, lon:55.2983, altitude:200, timezone:4, dst:false, hemisphere:"sud", population:7451, region:"Ouest", sf:0.99 },
+  LES_AVIRONS: { name:"La Réunion", city:"Les Avirons", lat:-21.2400, lon:55.3350, altitude:150, timezone:4, dst:false, hemisphere:"sud", population:10441, region:"Sud", sf:0.97 },
+  ETANG_SALE: { name:"La Réunion", city:"L'Étang-Salé", lat:-21.2650, lon:55.3686, altitude:20, timezone:4, dst:false, hemisphere:"sud", population:13775, region:"Sud", sf:0.97 },
+  SAINT_PHILIPPE: { name:"La Réunion", city:"Saint-Philippe", lat:-21.3606, lon:55.7683, altitude:20, timezone:4, dst:false, hemisphere:"sud", population:5106, region:"Sud", sf:0.90 },
+  SALAZIE: { name:"La Réunion", city:"Salazie", lat:-21.0283, lon:55.5392, altitude:550, timezone:4, dst:false, hemisphere:"sud", population:7329, region:"Est", sf:0.72 },
+  CILAOS: { name:"La Réunion", city:"Cilaos", lat:-21.1350, lon:55.4717, altitude:1200, timezone:4, dst:false, hemisphere:"sud", population:5866, region:"Sud", sf:0.82 },
+  PARIS: { name:"France", city:"Paris", lat:48.8566, lon:2.3522, altitude:35, timezone:1, dst:true, hemisphere:"nord", population:2161000, region:"Île-de-France", sf:0.52 }
+};
+
+/* ============================================================
+   2. LOCATIONS EUROPÉENNES (44 capitales)
+   ============================================================ */
+const EUROPE_LOCATIONS = {
+  AMSTERDAM:  { name:"Pays-Bas", city:"Amsterdam", lat:52.3676, lon:4.9041, altitude:-2, timezone:1, dst:true, hemisphere:"nord", population:872680, region:"Hollande-Septentrionale", sf:0.48 },
+  ANDORRA:    { name:"Andorre", city:"Andorre-la-Vieille", lat:42.5063, lon:1.5218, altitude:1023, timezone:1, dst:true, hemisphere:"nord", population:22886, region:"Andorre", sf:0.62 },
+  ANKARA:     { name:"Turquie", city:"Ankara", lat:39.9334, lon:32.8597, altitude:938, timezone:3, dst:false, hemisphere:"nord", population:5663322, region:"Anatolie-Centrale", sf:0.65 },
+  ATHENS:     { name:"Grèce", city:"Athènes", lat:37.9838, lon:23.7275, altitude:70, timezone:2, dst:true, hemisphere:"nord", population:664046, region:"Attique", sf:0.68 },
+  BELGRADE:   { name:"Serbie", city:"Belgrade", lat:44.7866, lon:20.4489, altitude:117, timezone:1, dst:true, hemisphere:"nord", population:1378682, region:"Serbie-Centrale", sf:0.55 },
+  BERLIN:     { name:"Allemagne", city:"Berlin", lat:52.5200, lon:13.4050, altitude:34, timezone:1, dst:true, hemisphere:"nord", population:3769495, region:"Berlin", sf:0.45 },
+  BERN:       { name:"Suisse", city:"Berne", lat:46.9480, lon:7.4474, altitude:540, timezone:1, dst:true, hemisphere:"nord", population:133883, region:"Berne", sf:0.50 },
+  BRATISLAVA: { name:"Slovaquie", city:"Bratislava", lat:48.1486, lon:17.1077, altitude:134, timezone:1, dst:true, hemisphere:"nord", population:437725, region:"Bratislava", sf:0.47 },
+  BRUSSELS:   { name:"Belgique", city:"Bruxelles", lat:50.8503, lon:4.3517, altitude:26, timezone:1, dst:true, hemisphere:"nord", population:1209000, region:"Bruxelles-Capitale", sf:0.47 },
+  BUCHAREST:  { name:"Roumanie", city:"Bucarest", lat:44.4268, lon:26.1025, altitude:85, timezone:2, dst:true, hemisphere:"nord", population:1883425, region:"Bucarest", sf:0.55 },
+  BUDAPEST:   { name:"Hongrie", city:"Budapest", lat:47.4979, lon:19.0402, altitude:96, timezone:1, dst:true, hemisphere:"nord", population:1752286, region:"Hongrie-Centrale", sf:0.50 },
+  CHISINAU:   { name:"Moldavie", city:"Chisinau", lat:47.0105, lon:28.8638, altitude:85, timezone:2, dst:true, hemisphere:"nord", population:639000, region:"Chisinau", sf:0.52 },
+  COPENHAGEN: { name:"Danemark", city:"Copenhague", lat:55.6761, lon:12.5683, altitude:17, timezone:1, dst:true, hemisphere:"nord", population:794128, region:"Hovedstaden", sf:0.42 },
+  DUBLIN:     { name:"Irlande", city:"Dublin", lat:53.3498, lon:-6.2603, altitude:20, timezone:0, dst:true, hemisphere:"nord", population:554554, region:"Leinster", sf:0.42 },
+  HELSINKI:   { name:"Finlande", city:"Helsinki", lat:60.1699, lon:24.9384, altitude:26, timezone:2, dst:true, hemisphere:"nord", population:658864, region:"Uusimaa", sf:0.38 },
+  ISTANBUL:   { name:"Turquie (européenne)", city:"Istanbul", lat:41.0082, lon:28.9784, altitude:40, timezone:3, dst:false, hemisphere:"nord", population:15462452, region:"Marmara", sf:0.60 },
+  KYIV:       { name:"Ukraine", city:"Kyiv", lat:50.4501, lon:30.5234, altitude:179, timezone:2, dst:true, hemisphere:"nord", population:2884000, region:"Kyiv", sf:0.48 },
+  LISBON:     { name:"Portugal", city:"Lisbonne", lat:38.7223, lon:-9.1393, altitude:2, timezone:0, dst:true, hemisphere:"nord", population:545923, region:"Lisbonne", sf:0.62 },
+  LJUBLJANA:  { name:"Slovénie", city:"Ljubljana", lat:46.0569, lon:14.5058, altitude:295, timezone:1, dst:true, hemisphere:"nord", population:295504, region:"Slovénie-Centrale", sf:0.50 },
+  LONDON:     { name:"Royaume-Uni", city:"Londres", lat:51.5074, lon:-0.1278, altitude:11, timezone:0, dst:true, hemisphere:"nord", population:8982000, region:"Angleterre", sf:0.45 },
+  LUXEMBOURG: { name:"Luxembourg", city:"Luxembourg", lat:49.6116, lon:6.1319, altitude:230, timezone:1, dst:true, hemisphere:"nord", population:122273, region:"Luxembourg", sf:0.46 },
+  MADRID:     { name:"Espagne", city:"Madrid", lat:40.4168, lon:-3.7038, altitude:667, timezone:1, dst:true, hemisphere:"nord", population:3223334, region:"Communauté de Madrid", sf:0.65 },
+  MINSK:      { name:"Biélorussie", city:"Minsk", lat:53.9045, lon:27.5615, altitude:220, timezone:3, dst:false, hemisphere:"nord", population:2009786, region:"Minsk", sf:0.45 },
+  MONACO:     { name:"Monaco", city:"Monaco", lat:43.7384, lon:7.4246, altitude:10, timezone:1, dst:true, hemisphere:"nord", population:38300, region:"Monaco", sf:0.65 },
+  MOSCOW:     { name:"Russie (européenne)", city:"Moscou", lat:55.7558, lon:37.6173, altitude:156, timezone:3, dst:false, hemisphere:"nord", population:12506468, region:"Moscou", sf:0.44 },
+  NICOSIA:    { name:"Chypre", city:"Nicosie", lat:35.1856, lon:33.3823, altitude:220, timezone:2, dst:true, hemisphere:"nord", population:330000, region:"Nicosie", sf:0.72 },
+  OSLO:       { name:"Norvège", city:"Oslo", lat:59.9139, lon:10.7522, altitude:23, timezone:1, dst:true, hemisphere:"nord", population:709037, region:"Oslo", sf:0.40 },
+  PODGORICA:  { name:"Monténégro", city:"Podgorica", lat:42.4304, lon:19.2594, altitude:44, timezone:1, dst:true, hemisphere:"nord", population:150977, region:"Podgorica", sf:0.62 },
+  PRAGUE:     { name:"Tchéquie", city:"Prague", lat:50.0755, lon:14.4378, altitude:200, timezone:1, dst:true, hemisphere:"nord", population:1309000, region:"Bohême", sf:0.46 },
+  PRISTINA:   { name:"Kosovo", city:"Pristina", lat:42.6629, lon:21.1655, altitude:652, timezone:1, dst:true, hemisphere:"nord", population:204725, region:"Pristina", sf:0.58 },
+  REYKJAVIK:  { name:"Islande", city:"Reykjavik", lat:64.1466, lon:-21.9426, altitude:61, timezone:0, dst:false, hemisphere:"nord", population:131136, region:"Höfuðborgarsvæðið", sf:0.35 },
+  RIGA:       { name:"Lettonie", city:"Riga", lat:56.9496, lon:24.1052, altitude:18, timezone:2, dst:true, hemisphere:"nord", population:614618, region:"Riga", sf:0.40 },
+  ROME:       { name:"Italie", city:"Rome", lat:41.9028, lon:12.4964, altitude:21, timezone:1, dst:true, hemisphere:"nord", population:2872800, region:"Latium", sf:0.60 },
+  SARAJEVO:   { name:"Bosnie-Herzégovine", city:"Sarajevo", lat:43.8563, lon:18.4131, altitude:518, timezone:1, dst:true, hemisphere:"nord", population:275524, region:"Sarajevo", sf:0.53 },
+  SKOPJE:     { name:"Macédoine du Nord", city:"Skopje", lat:41.9973, lon:21.4280, altitude:240, timezone:1, dst:true, hemisphere:"nord", population:544086, region:"Skopje", sf:0.58 },
+  SOFIA:      { name:"Bulgarie", city:"Sofia", lat:42.6977, lon:23.3219, altitude:550, timezone:2, dst:true, hemisphere:"nord", population:1286385, region:"Sofia", sf:0.57 },
+  STOCKHOLM:  { name:"Suède", city:"Stockholm", lat:59.3293, lon:18.0686, altitude:28, timezone:1, dst:true, hemisphere:"nord", population:975551, region:"Stockholm", sf:0.41 },
+  TALLINN:    { name:"Estonie", city:"Tallinn", lat:59.4370, lon:24.7536, altitude:44, timezone:2, dst:true, hemisphere:"nord", population:437619, region:"Harju", sf:0.39 },
+  TIRANA:     { name:"Albanie", city:"Tirana", lat:41.3275, lon:19.8187, altitude:110, timezone:1, dst:true, hemisphere:"nord", population:557422, region:"Tirana", sf:0.60 },
+  VADUZ:      { name:"Liechtenstein", city:"Vaduz", lat:47.1410, lon:9.5209, altitude:455, timezone:1, dst:true, hemisphere:"nord", population:5748, region:"Oberland", sf:0.50 },
+  VALLETTA:   { name:"Malte", city:"La Valette", lat:35.8989, lon:14.5146, altitude:56, timezone:1, dst:true, hemisphere:"nord", population:6444, region:"Malte", sf:0.70 },
+  VATICAN:    { name:"Vatican", city:"Cité du Vatican", lat:41.9029, lon:12.4534, altitude:78, timezone:1, dst:true, hemisphere:"nord", population:825, region:"Vatican", sf:0.60 },
+  VIENNA:     { name:"Autriche", city:"Vienne", lat:48.2082, lon:16.3738, altitude:171, timezone:1, dst:true, hemisphere:"nord", population:1911191, region:"Vienne", sf:0.48 },
+  VILNIUS:    { name:"Lituanie", city:"Vilnius", lat:54.6872, lon:25.2797, altitude:112, timezone:2, dst:true, hemisphere:"nord", population:592389, region:"Vilnius", sf:0.42 },
+  WARSAW:     { name:"Pologne", city:"Varsovie", lat:52.2297, lon:21.0122, altitude:100, timezone:1, dst:true, hemisphere:"nord", population:1790658, region:"Mazovie", sf:0.45 },
+  ZAGREB:     { name:"Croatie", city:"Zagreb", lat:45.8150, lon:15.9819, altitude:158, timezone:1, dst:true, hemisphere:"nord", population:806341, region:"Croatie-Centrale", sf:0.52 }
+};
+
+/* Base globale */
+const ALL_LOCATIONS = { ...LOCATIONS, ...EUROPE_LOCATIONS };
+
+/* ============================================================
+   3. PVGIS — DONNÉES EMBARQUÉES (Réunion + Paris + Europe)
+   Valeurs indicatives kWh/kWc/mois · tilt 20° (Réunion) / 35° (Europe)
+   ============================================================ */
+const PVGIS_PRECOMPUTED = {
+  // Réunion
+  SAINT_DENIS:      [152, 148, 162, 155, 142, 132, 135, 145, 155, 162, 158, 150],
+  SAINTE_MARIE:     [150, 146, 160, 153, 140, 130, 133, 143, 153, 160, 156, 148],
+  SAINTE_SUZANNE:   [148, 144, 158, 151, 138, 128, 131, 141, 151, 158, 154, 146],
+  SAINT_PAUL:       [155, 152, 168, 162, 148, 138, 142, 152, 162, 168, 162, 154],
+  LE_PORT:          [158, 155, 172, 166, 152, 142, 146, 156, 166, 172, 166, 158],
+  LA_POSSESSION:    [154, 150, 166, 160, 146, 136, 140, 150, 160, 166, 160, 152],
+  SAINT_LEU:        [156, 153, 170, 164, 150, 140, 144, 154, 164, 170, 164, 156],
+  TROIS_BASSINS:    [153, 149, 165, 159, 145, 135, 139, 149, 159, 165, 159, 151],
+  SAINT_PIERRE:     [148, 148, 165, 162, 155, 148, 152, 158, 160, 162, 155, 148],
+  SAINT_LOUIS:      [146, 146, 163, 160, 153, 146, 150, 156, 158, 160, 153, 146],
+  LE_TAMPON:        [140, 140, 156, 154, 148, 142, 146, 152, 154, 156, 148, 140],
+  SAINT_JOSEPH:     [142, 143, 160, 158, 152, 146, 150, 156, 158, 158, 150, 142],
+  PETITE_ILE:       [144, 144, 161, 158, 151, 144, 148, 154, 156, 158, 151, 144],
+  ETANG_SALE:       [147, 147, 164, 161, 154, 147, 151, 157, 159, 161, 154, 147],
+  LES_AVIRONS:      [145, 145, 162, 159, 152, 145, 149, 155, 157, 159, 152, 145],
+  ENTRE_DEUX:       [138, 138, 154, 152, 146, 140, 144, 150, 152, 154, 146, 138],
+  SAINT_PHILIPPE:   [140, 141, 158, 156, 150, 144, 148, 154, 156, 156, 148, 140],
+  CILAOS:           [130, 130, 145, 144, 140, 135, 138, 142, 144, 145, 138, 130],
+  SAINT_ANDRE:      [135, 132, 145, 140, 128, 118, 122, 132, 142, 148, 142, 135],
+  SAINT_BENOIT:     [128, 125, 138, 133, 122, 112, 116, 126, 135, 140, 135, 128],
+  BRAS_PANON:       [132, 129, 142, 137, 126, 116, 120, 130, 139, 144, 139, 132],
+  SAINTE_ROSE:      [125, 122, 135, 130, 119, 110, 114, 123, 132, 137, 132, 125],
+  SALAZIE:          [118, 115, 128, 124, 114, 105, 108, 117, 125, 130, 125, 118],
+  PLAINE_PALMISTES: [120, 117, 130, 126, 116, 107, 110, 119, 127, 132, 127, 120],
+  PARIS:            [ 42,  58,  95, 118, 138, 145, 148, 135, 108,  72,  48,  38],
+
+  // === Europe (tilt 35°, Sud) ===
+  AMSTERDAM:  [ 38,  56,  92, 118, 140, 145, 148, 132, 102,  66,  42,  33],
+  ANDORRA:    [ 78,  98, 138, 165, 188, 198, 208, 195, 158, 112,  80,  65],
+  ANKARA:     [ 75,  95, 138, 168, 195, 208, 218, 208, 172, 125,  88,  70],
+  ATHENS:     [ 82, 100, 138, 165, 190, 205, 215, 205, 170, 125,  90,  75],
+  BELGRADE:   [ 55,  75, 115, 145, 170, 180, 185, 170, 135,  90,  60,  48],
+  BERLIN:     [ 33,  52,  90, 120, 148, 158, 162, 148, 112,  70,  40,  28],
+  BERN:       [ 42,  60,  98, 125, 148, 155, 160, 148, 118,  78,  50,  38],
+  BRATISLAVA: [ 38,  57,  96, 126, 153, 163, 168, 153, 117,  73,  45,  32],
+  BRUSSELS:   [ 37,  55,  91, 117, 139, 144, 147, 131, 101,  65,  41,  32],
+  BUCHAREST:  [ 58,  78, 118, 148, 175, 185, 192, 182, 145, 100,  70,  55],
+  BUDAPEST:   [ 42,  62, 102, 132, 160, 170, 175, 160, 124,  80,  50,  38],
+  CHISINAU:   [ 52,  72, 112, 142, 170, 180, 185, 172, 138,  92,  62,  48],
+  COPENHAGEN: [ 28,  46,  82, 112, 140, 148, 152, 138, 102,  62,  34,  24],
+  DUBLIN:     [ 32,  50,  85, 112, 135, 138, 140, 122,  92,  58,  36,  28],
+  HELSINKI:   [ 20,  38,  76, 110, 148, 162, 168, 152, 110,  60,  26,  16],
+  ISTANBUL:   [ 68,  88, 128, 158, 185, 198, 208, 198, 162, 115,  82,  65],
+  KYIV:       [ 38,  58,  98, 130, 160, 172, 178, 165, 125,  78,  48,  34],
+  LISBON:     [ 78,  98, 140, 168, 190, 200, 210, 198, 162, 118,  85,  70],
+  LJUBLJANA:  [ 45,  65, 105, 135, 162, 172, 178, 162, 126,  82,  52,  40],
+  LONDON:     [ 35,  52,  88, 115, 138, 142, 145, 128,  98,  62,  40,  30],
+  LUXEMBOURG: [ 38,  56,  92, 118, 140, 145, 148, 132, 102,  66,  42,  33],
+  MADRID:     [ 85, 105, 148, 175, 195, 205, 215, 200, 165, 120,  90,  75],
+  MINSK:      [ 32,  52,  92, 125, 155, 165, 170, 155, 115,  70,  40,  28],
+  MONACO:     [ 65,  82, 120, 148, 172, 180, 188, 178, 148, 105,  72,  58],
+  MOSCOW:     [ 30,  50,  92, 128, 162, 172, 178, 162, 118,  70,  38,  26],
+  NICOSIA:    [ 92, 110, 148, 175, 200, 215, 225, 218, 182, 138, 100,  85],
+  OSLO:       [ 25,  43,  80, 110, 140, 150, 155, 142, 105,  62,  32,  22],
+  PODGORICA:  [ 72,  90, 130, 158, 182, 195, 205, 195, 160, 115,  82,  65],
+  PRAGUE:     [ 36,  55,  94, 124, 152, 162, 168, 152, 116,  72,  43,  30],
+  PRISTINA:   [ 60,  80, 120, 150, 178, 190, 198, 188, 152, 105,  72,  58],
+  REYKJAVIK:  [ 12,  28,  62,  95, 130, 148, 155, 138,  95,  48,  18,  10],
+  RIGA:       [ 23,  41,  80, 114, 148, 162, 166, 150, 110,  61,  29,  19],
+  ROME:       [ 72,  90, 130, 158, 182, 195, 205, 195, 160, 115,  82,  65],
+  SARAJEVO:   [ 52,  72, 112, 142, 168, 178, 182, 168, 132,  88,  58,  45],
+  SKOPJE:     [ 68,  86, 126, 152, 178, 190, 198, 188, 152, 108,  78,  63],
+  SOFIA:      [ 62,  80, 120, 148, 175, 185, 192, 182, 148, 102,  72,  58],
+  STOCKHOLM:  [ 24,  42,  80, 112, 145, 158, 162, 148, 108,  62,  30,  20],
+  TALLINN:    [ 21,  39,  78, 112, 148, 162, 168, 152, 110,  60,  27,  17],
+  TIRANA:     [ 70,  88, 128, 155, 180, 192, 200, 190, 155, 110,  80,  65],
+  VADUZ:      [ 43,  61,  99, 126, 149, 156, 161, 149, 119,  79,  51,  39],
+  VALLETTA:   [ 88, 105, 142, 168, 192, 208, 218, 210, 175, 130,  95,  80],
+  VATICAN:    [ 72,  90, 130, 158, 182, 195, 205, 195, 160, 115,  82,  65],
+  VIENNA:     [ 40,  58,  96, 125, 150, 158, 162, 148, 115,  75,  48,  35],
+  VILNIUS:    [ 26,  44,  82, 116, 148, 160, 164, 148, 110,  63,  32,  22],
+  WARSAW:     [ 30,  48,  86, 118, 148, 158, 162, 148, 110,  68,  38,  26],
+  ZAGREB:     [ 48,  68, 108, 138, 165, 175, 180, 165, 128,  84,  55,  42]
+};
+
+function getPVGISData(locOrKey) {
+  if (!locOrKey) return null;
+  const key = typeof locOrKey === "string" ? locOrKey : Object.keys(ALL_LOCATIONS).find(k => ALL_LOCATIONS[k] === locOrKey);
+  if (key && PVGIS_PRECOMPUTED[key]) return PVGIS_PRECOMPUTED[key];
+  const cityName = typeof locOrKey === "object" ? locOrKey.city : locOrKey;
+  const foundKey = Object.keys(PVGIS_PRECOMPUTED).find(k =>
+    ALL_LOCATIONS[k] && ALL_LOCATIONS[k].city.toLowerCase() === String(cityName).toLowerCase()
+  );
+  return foundKey ? PVGIS_PRECOMPUTED[foundKey] : null;
+}
+
+/* ============================================================
+   4. ÉTAT GLOBAL
+   ============================================================ */
+let currentLocation = LOCATIONS.SAINT_DENIS;
+let currentKey = "SAINT_DENIS";
+let currentRegion = "REUNION";
+let currentMode = "solo";
+let currentLang = "fr";
+let currentTZ = 4;
+let geoLoc = null, geoMarker = null;
+let map = null, markers = {};
+let isAnimating = false, animTimer = null;
+let arActive = false, arRAF = null, arStream = null, arReal = false, arHeading = 0, arPitch = 0;
+let calibTimer = null, resizeTimer = null, toastTimer = null;
+let atlasSel = ["LE_PORT", "MADRID", "BERLIN", "ATHENS"];
+let atlasUnit = "total";
+const PVGIS_PREFIX = "oracle-pvgis-";
+let favorites = [];
+try { favorites = JSON.parse(localStorage.getItem("oracle-favs") || "[]"); } catch (e) { favorites = []; }
+
+const I18N = {
+  fr: { "title":"🌞 Oracle Solaire — Europe", "mode.solo":"🔮 Mode solo", "mode.compare":"🌐 Comparer 2 villes", "mode.atlas":"📊 Atlas kWh/m²", "mode.pv":"🔋 Simulateur PV" },
+  en: { "title":"🌞 Solar Oracle — Europe", "mode.solo":"🔮 Solo mode", "mode.compare":"🌐 Compare 2 cities", "mode.atlas":"📊 kWh/m² Atlas", "mode.pv":"🔋 PV Simulator" },
+  cr: { "title":"🌞 Lork Solèy — Léròp", "mode.solo":"🔮 Mod sèl", "mode.compare":"🌐 Afront 2 lavil", "mode.atlas":"📊 Atlas kWh/m²", "mode.pv":"🔋 Similatèr PV" }
+};
+function setLanguage(lang) {
+  currentLang = I18N[lang] ? lang : "fr";
+  const dict = I18N[currentLang];
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (dict[k]) el.textContent = dict[k];
+  });
+  ["langFr", "langEn", "langCr"].forEach(id => { const b = $(id); if (b) b.classList.remove("active"); });
+  const btn = { fr: "langFr", en: "langEn", cr: "langCr" }[currentLang];
+  if ($(btn)) $(btn).classList.add("active");
+}
+
+/* ============================================================
+   5. UTILITAIRES
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const rad = d => d * Math.PI / 180;
+const deg = r => r * 180 / Math.PI;
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function pad2(n) { return String(n).padStart(2, "0"); }
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371, dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+const MONTH_FULL = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const MONTH_LABELS = ["J","F","M","A","M","J","J","A","S","O","N","D"];
+const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+function fmtTime(d, tz) {
+  if (tz === undefined) tz = currentTZ;
+  if (!d || isNaN(d.getTime())) return "—";
+  const t = new Date(d.getTime() + tz * 3600000);
+  return pad2(t.getUTCHours()) + ":" + pad2(t.getUTCMinutes());
+}
+function fmtDur(h) {
+  if (h == null || isNaN(h)) return "—";
+  const m = Math.round(h * 60);
+  return Math.floor(m / 60) + "h " + pad2(m % 60);
+}
+function directionName(b) {
+  const dirs = ["Nord","Nord-Est","Est","Sud-Est","Sud","Sud-Ouest","Ouest","Nord-Ouest"];
+  return dirs[Math.round((((b % 360) + 360) % 360) / 45) % 8];
+}
+function phaseName(p) {
+  const names = [[0.03,"Nouvelle Lune"],[0.22,"Lune croissante"],[0.28,"Premier Quartier"],[0.47,"Gibbeuse croissante"],[0.53,"Pleine Lune"],[0.72,"Gibbeuse décroissante"],[0.78,"Dernier Quartier"],[0.97,"Lune décroissante"],[1.01,"Nouvelle Lune"]];
+  for (const [lim, n] of names) if (p < lim) return n;
+  return "Nouvelle Lune";
+}
+function moonEmoji(p) { return ["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"][Math.round(p * 8) % 8]; }
+function isDST(y, mo, d) {
+  if (mo < 3 || mo > 10) return false;
+  if (mo > 3 && mo < 10) return true;
+  const last = new Date(Date.UTC(y, mo, 0));
+  while (last.getUTCDay() !== 0) last.setUTCDate(last.getUTCDate() - 1);
+  return mo === 3 ? d >= last.getUTCDate() : d <= last.getUTCDate();
+}
+function getInstant() {
+  const dv = $("dateInput").value || "2025-01-01";
+  const tv = $("timeInput").value || "12:00";
+  const [y, mo, d] = dv.split("-").map(Number);
+  const [h, mi] = tv.split(":").map(Number);
+  const loc = currentLocation;
+  currentTZ = loc.timezone + (loc.dst && isDST(y, mo, d) ? 1 : 0);
+  return new Date(Date.UTC(y, mo - 1, d, h || 0, mi || 0) - currentTZ * 3600000);
+}
+function dayStartUTC(instant) {
+  const d = new Date(instant.getTime() + currentTZ * 3600000);
+  return { y: d.getUTCFullYear(), mo: d.getUTCMonth(), da: d.getUTCDate() };
+}
+function hourInstantTZ(instant, hh, tz) {
+  const d = new Date(instant.getTime() + tz * 3600000);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), Math.floor(hh), Math.round((hh % 1) * 60)) - tz * 3600000);
+}
+function showToast(msg) {
+  const t = $("toast"); if (!t) return;
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+/* ============================================================
+   6. UI — Drawer, FAB, Nav
+   ============================================================ */
+function toggleDrawer() {
+  const d = $("mobileDrawer"), b = $("drawerBackdrop"), t = $("mobileMenuToggle");
+  const open = d.classList.toggle("open");
+  b.classList.toggle("open", open);
+  t.classList.toggle("open", open);
+  t.textContent = open ? "✕" : "☰";
+}
+function closeDrawer() {
+  $("mobileDrawer").classList.remove("open");
+  $("drawerBackdrop").classList.remove("open");
+  $("mobileMenuToggle").classList.remove("open");
+  $("mobileMenuToggle").textContent = "☰";
+}
+function showRefreshIndicator() {
+  const ind = $("refreshIndicator"); if (!ind) return;
+  ind.classList.add("show");
+  clearTimeout(ind._timer);
+  ind._timer = setTimeout(() => ind.classList.remove("show"), 1200);
+}
+function syncMobileNav() {
+  const map = { solo: "navSolo", atlas: "navAtlas", pv: "navPv" };
+  ["navSolo", "navAtlas", "navPv"].forEach(id => { const b = $(id); if (b) b.classList.remove("active"); });
+  const tab = map[currentMode];
+  if (tab && $(tab)) $(tab).classList.add("active");
+}
+
+/* ============================================================
+   7. CALCULS SOLEIL / LUNE
+   ============================================================ */
+function sunPos(date, lat, lon) {
+  const p = SunCalc.getPosition(date, lat, lon);
+  return { bearing: (deg(p.azimuth) + 180) % 360, altitude: deg(p.altitude) };
+}
+function dayDurH(T) {
+  if (!T || !T.sunrise || !T.sunset || isNaN(T.sunrise) || isNaN(T.sunset)) return null;
+  return (T.sunset - T.sunrise) / 3600000;
+}
+function moonDurH(mt) {
+  if (!mt || !mt.rise || !mt.set || isNaN(mt.rise) || isNaN(mt.set)) return null;
+  let h = (mt.set - mt.rise) / 3600000;
+  if (h < 0) h += 24;
+  return h;
+}
+function skyInfo(alt) {
+  if (alt < -18) return ["🌌","Nuit astronomique"];
+  if (alt < -12) return ["🌌","Crépuscule astronomique"];
+  if (alt < -6) return ["🌆","Crépuscule nautique"];
+  if (alt < -0.833) return ["💙","Heure bleue"];
+  if (alt < 6) return ["🌅","Heure dorée"];
+  if (alt < 15) return ["🌇","Lumière rasante"];
+  if (alt < 45) return ["🌤️","Plein jour"];
+  return ["☀️","Soleil haut (UV fort)"];
+}
+function tagline(alt) {
+  if (alt > 45) return "Le soleil est presque à la verticale.";
+  if (alt > 15) return "Belle lumière directe, ombres courtes.";
+  if (alt > 0) return "Ombres longues et lumière dorée.";
+  if (alt > -6) return "Le soleil vient de se coucher ou se lève bientôt.";
+  return "La nuit règne sur " + currentLocation.city + ".";
+}
+function adviceText(alt, loc) {
+  if (alt > 60) return "☀️ Soleil quasi au zénith à " + loc.city + " : chapeau, lunettes polarisées et SPF 50+ indispensables.";
+  if (alt > 30) return "🔆 Soleil bien haut : lumière excellente pour la photographie, protection recommandée.";
+  if (alt > 6) return "🌅 Heure dorée : lumière chaude et rasante — parfait pour la photographie.";
+  if (alt > -0.833) return "🌆 Heure bleue : ciel profond et contrastes doux — idéal pour les photos urbaines.";
+  if (alt > -12) return "🌆 Crépuscule : repérez Vénus et les étoiles brillantes vers l'ouest.";
+  if (alt > -18) return "🌌 Fin du crépuscule astronomique : la Voie lactée devient visible.";
+  return "🌌 Nuit noire : conditions idéales pour l'astrophoto.";
+}
+
+/* ============================================================
+   8. RENDU MODE SOLO
+   ============================================================ */
+function renderSolo(instant) {
+  const loc = currentLocation;
+  const s = sunPos(instant, loc.lat, loc.lon);
+  const mp = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const moonB = (deg(mp.azimuth) + 180) % 360, moonA = deg(mp.altitude);
+  const isDay = s.altitude > -0.833;
+  const arrow = $("arrow");
+  if (arrow) {
+    arrow.style.transform = "rotate(" + s.bearing.toFixed(1) + "deg)";
+    arrow.style.color = isDay ? "#5B9BD5" : "#c8d4e8";
+  }
+  const placeDot = (id, bearing, alt) => {
+    const el = $(id); if (!el) return;
+    if (alt > 0) {
+      const a = rad(bearing), R = 150;
+      el.setAttribute("cx", (170 + R * Math.sin(a)).toFixed(1));
+      el.setAttribute("cy", (170 - R * Math.cos(a)).toFixed(1));
+      el.setAttribute("opacity", "1");
+    } else el.setAttribute("opacity", "0");
+  };
+  placeDot("sunDot", s.bearing, s.altitude);
+  placeDot("moonDot", moonB, moonA);
+  $("resDir").textContent = directionName(s.bearing);
+  $("resTag").textContent = tagline(s.altitude);
+  $("resAzimuth").textContent = s.bearing.toFixed(1) + "°";
+  $("resAltitude").textContent = (s.altitude >= 0 ? "+" : "") + s.altitude.toFixed(1) + "°";
+  const bar = $("resBar");
+  if (bar) {
+    bar.style.width = clamp(s.altitude / 90 * 100, 0, 100).toFixed(0) + "%";
+    bar.style.background = isDay ? "linear-gradient(90deg,#EF4135,#FFD700)" : "#5B9BD5";
+  }
+  $("resMoonDist").textContent = Math.round(mp.distance).toLocaleString("fr-FR") + " km";
+  const sky = skyInfo(s.altitude);
+  $("resColor").textContent = sky[1] + " " + sky[0];
+  $("resAdvice").textContent = adviceText(s.altitude, loc);
+  const { y, mo, da } = dayStartUTC(instant);
+  $("infoBanner").innerHTML = "📍 <b>" + loc.city + "</b> · " + loc.name + " · " + loc.lat.toFixed(3) + "°, " + loc.lon.toFixed(3) + "° · " + loc.altitude + " m · UTC" + (currentTZ >= 0 ? "+" : "") + currentTZ + " — " + da + " " + MONTH_FULL[mo] + " " + y;
+}
+
+/* ============================================================
+   9. TABLE DES ÉPHÉMÉRIDES
+   ============================================================ */
+const TIME_MAP = { "sun-night":"nightEnd","sun-nautical-dawn":"nauticalDawn","sun-dawn":"dawn","sunriseTime":"sunrise","sun-sunrise-end":"sunriseEnd","sun-golden-end":"goldenHourEnd","solarNoonTime":"solarNoon","sun-golden":"goldenHour","sunsetTime":"sunset","sun-dusk":"dusk","sun-nautical-dusk":"nauticalDusk","sun-night-start":"night" };
+function renderTimes(instant) {
+  const loc = currentLocation;
+  const T = SunCalc.getTimes(instant, loc.lat, loc.lon);
+  Object.keys(TIME_MAP).forEach(id => {
+    const el = $(id);
+    if (el) el.textContent = fmtTime(T[TIME_MAP[id]]);
+  });
+  const el = $("dayLength"); if (el) el.textContent = fmtDur(dayDurH(T));
+  const mt = SunCalc.getMoonTimes(instant, loc.lat, loc.lon);
+  const mr = $("moonriseTime"), ms = $("moonsetTime"), md = $("moonDuration");
+  if (mr) mr.textContent = fmtTime(mt.rise);
+  if (ms) ms.textContent = fmtTime(mt.set);
+  if (md) md.textContent = fmtDur(moonDurH(mt));
+}
+
+function renderMoon(instant) {
+  const loc = currentLocation;
+  const ill = SunCalc.getMoonIllumination(instant);
+  const pos = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const s = sunPos(instant, loc.lat, loc.lon);
+  $("moon-distance").textContent = Math.round(pos.distance).toLocaleString("fr-FR") + " km";
+  $("moon-angle").textContent = Math.round(ill.phase * 360) + "°";
+  $("moon-age").textContent = (ill.phase * 29.53).toFixed(1) + " jours";
+  $("moonPhase").textContent = phaseName(ill.phase) + " " + moonEmoji(ill.phase);
+  $("moonIllum").textContent = Math.round(ill.fraction * 100) + " %";
+  $("shadow-length").textContent = s.altitude > 0.5 ? (1 / Math.tan(rad(s.altitude))).toFixed(2) + " m" : (s.altitude > -0.5 ? "∞" : "—");
+}
+
+/* ============================================================
+   10. GRAPHIQUES CANVAS — prepCanvas adaptatif
+   ============================================================ */
+function prepCanvas(id, wantH) {
+  const cv = $(id); if (!cv) return null;
+  const parent = cv.parentElement;
+  let w = cv.clientWidth || (parent ? parent.clientWidth - 32 : 300);
+  if (w < 40) w = 300;
+  let h = cv.clientHeight || (parent ? parent.clientHeight - 32 : 0);
+  if (h < 80) {
+    if (wantH) h = wantH;
+    else {
+      const ratio = w < 400 ? 0.75 : w < 700 ? 0.65 : 0.55;
+      h = Math.max(180, Math.min(320, w * ratio));
+    }
+    cv.style.height = h + "px";
+  }
+  const maxH = 500;
+  if (h > maxH) h = maxH;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width = w + "px";
+  cv.style.height = h + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+function renderSolarMap(instant) {
+  const p = prepCanvas("solarMap"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 22;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#22222e"; ctx.lineWidth = 1;
+  [1, 2/3, 1/3].forEach(f => { ctx.beginPath(); ctx.arc(cx, cy, R * f, 0, 2 * Math.PI); ctx.stroke(); });
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  ctx.fillStyle = "#8a8a9a"; ctx.font = "9px 'Courier New'";
+  ctx.fillText("60°", cx + 3, cy - R * 2/3 + 9);
+  ctx.fillText("30°", cx + 3, cy - R/3 + 9);
+  ctx.fillText("0°", cx + 3, cy + R - 3);
+  ctx.font = "bold 12px 'Segoe UI'";
+  [["N",0,"#5B9BD5"],["E",90,"#E8E8F0"],["S",180,"#EF4135"],["O",270,"#FF8A80"]].forEach(([t, a, col]) => {
+    const r = rad(a); ctx.fillStyle = col;
+    ctx.fillText(t, cx + (R + 12) * Math.sin(r) - 4, cy - (R + 12) * Math.cos(r) + 4);
+  });
+  const y = dayStartUTC(instant).y;
+  const dates = [
+    { d: instant, color: "#EF4135" },
+    { d: new Date(Date.UTC(y, 5, 21, 10)), color: "#FF6B5E" },
+    { d: new Date(Date.UTC(y, 2, 20, 10)), color: "#5B9BD5" },
+    { d: new Date(Date.UTC(y, 11, 21, 10)), color: "#E8E8F0" }
+  ];
+  dates.forEach(dt => {
+    ctx.strokeStyle = dt.color; ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    let started = false;
+    for (let hh = 0; hh <= 24; hh += 0.25) {
+      const t = hourInstantTZ(dt.d, hh, currentTZ);
+      const s = sunPos(t, loc.lat, loc.lon);
+      if (s.altitude <= 0) { started = false; continue; }
+      const rr = (90 - s.altitude) / 90 * R, a = rad(s.bearing);
+      const x = cx + rr * Math.sin(a), yy = cy - rr * Math.cos(a);
+      if (started) ctx.lineTo(x, yy); else { ctx.moveTo(x, yy); started = true; }
+    }
+    ctx.stroke();
+  });
+  let maxAlt = -90, riseB = null, setB = null, prev = null;
+  for (let hh = 0; hh <= 24; hh += 0.1) {
+    const s = sunPos(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    if (s.altitude > maxAlt) maxAlt = s.altitude;
+    if (prev && prev.altitude <= 0 && s.altitude > 0) riseB = s.bearing;
+    if (prev && prev.altitude > 0 && s.altitude <= 0) setB = s.bearing;
+    prev = s;
+  }
+  const si = $("solarInfo");
+  if (si) si.innerHTML = [
+    ["Altitude max", maxAlt.toFixed(1) + "°"],
+    ["Azimut au lever", riseB != null ? Math.round(riseB) + "°" : "—"],
+    ["Azimut au coucher", setB != null ? Math.round(setB) + "°" : "—"]
+  ].map(([l, v]) => '<div class="info-item"><div class="info-label">' + l + '</div><div class="info-value">' + v + '</div></div>').join("");
+}
+
+function drawLineChart(id, series, opts = {}) {
+  const p = prepCanvas(id, opts.height); if (!p) return;
+  const { ctx, w, h } = p;
+  const ml = 44, mr = 12, mt = 14, mb = 28;
+  const yMin = opts.yMin ?? -90, yMax = opts.yMax ?? 90;
+  const xMax = opts.xMax ?? 24, xStep = opts.xStep ?? 3;
+  const xLabels = opts.xLabels || null;
+  const X = x => ml + x / xMax * (w - ml - mr);
+  const Y = v => mt + (yMax - v) / (yMax - yMin) * (h - mt - mb);
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#22222e"; ctx.lineWidth = 1;
+  ctx.fillStyle = "#8a8a9a"; ctx.font = "10px 'Courier New'"; ctx.textAlign = "center";
+  for (let x = 0; x <= xMax; x += xStep) {
+    ctx.beginPath(); ctx.moveTo(X(x), mt); ctx.lineTo(X(x), h - mb); ctx.stroke();
+    ctx.fillText(xLabels ? xLabels[x] : pad2(Math.round(x) % 24) + "h", X(x), h - 10);
+  }
+  ctx.textAlign = "right";
+  for (let v = yMin; v <= yMax; v += (opts.yStep ?? 30)) {
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.moveTo(ml, Y(v)); ctx.lineTo(w - mr, Y(v)); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillText(String(Math.round(v)), ml - 6, Y(v) + 3);
+  }
+  if (yMin < 0 && yMax > 0) {
+    ctx.strokeStyle = "#5B9BD5"; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(ml, Y(0)); ctx.lineTo(w - mr, Y(0)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.textAlign = "left";
+  series.forEach(s => {
+    if (!s.points || !s.points.length) return;
+    if (s.fill) {
+      ctx.fillStyle = s.fill;
+      ctx.beginPath();
+      s.points.forEach((pt, i) => i ? ctx.lineTo(X(pt.x), Y(Math.max(pt.y, 0))) : ctx.moveTo(X(pt.x), Y(Math.max(pt.y, 0))));
+      ctx.lineTo(X(s.points[s.points.length - 1].x), Y(0));
+      ctx.lineTo(X(s.points[0].x), Y(0));
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+    if (s.dash) ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    s.points.forEach((pt, i) => i ? ctx.lineTo(X(pt.x), Y(pt.y)) : ctx.moveTo(X(pt.x), Y(pt.y)));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+}
+function altSeries(instant, loc, tz, color, fill, moon = false) {
+  const pts = [];
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const t = hourInstantTZ(instant, hh, tz);
+    const a = moon ? deg(SunCalc.getMoonPosition(t, loc.lat, loc.lon).altitude) : sunPos(t, loc.lat, loc.lon).altitude;
+    pts.push({ x: hh, y: a });
+  }
+  return { points: pts, color, fill };
+}
+function drawAzimuthRose(instant) {
+  const p = prepCanvas("azimuthRose"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 16;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#22222e";
+  [R, R * 2/3, R/3].forEach(r => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke(); });
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  ctx.font = "bold 11px 'Segoe UI'"; ctx.textAlign = "center";
+  [["N","#5B9BD5",cx,cy-R-2],["E","#E8E8F0",cx+R+2,cy+4],["S","#EF4135",cx,cy+R+10],["O","#FF8A80",cx-R-10,cy+4]].forEach(([t,c,x,y2]) => { ctx.fillStyle = c; ctx.fillText(t, x, y2); });
+  ctx.textAlign = "left";
+  ctx.strokeStyle = "#EF4135"; ctx.lineWidth = 1.8;
+  ctx.beginPath(); let started = false;
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const s = sunPos(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    if (s.altitude <= -0.5) { started = false; continue; }
+    const a = rad(s.bearing), x = cx + R * Math.sin(a), y2 = cy - R * Math.cos(a);
+    if (started) ctx.lineTo(x, y2); else { ctx.moveTo(x, y2); started = true; }
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#FFD700"; ctx.font = "9px 'Courier New'";
+  for (let hh = 0; hh <= 24; hh += 2) {
+    const s = sunPos(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    if (s.altitude <= 0) continue;
+    const a = rad(s.bearing), x = cx + R * Math.sin(a), y2 = cy - R * Math.cos(a);
+    ctx.beginPath(); ctx.arc(x, y2, 3, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillText(pad2(hh % 24) + "h", x + 4, y2 - 4);
+  }
+}
+function drawAltitudePolar(instant) {
+  const p = prepCanvas("altitudePolar"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 16;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#22222e";
+  [R, R * 2/3, R/3].forEach(r => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke(); });
+  ctx.strokeStyle = "#5B9BD5"; ctx.lineWidth = 1.8;
+  ctx.beginPath(); let started = false;
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const s = sunPos(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    if (s.altitude <= 0) { started = false; continue; }
+    const rr = (90 - s.altitude) / 90 * R, a = rad(s.bearing);
+    const x = cx + rr * Math.sin(a), y2 = cy - rr * Math.cos(a);
+    if (started) ctx.lineTo(x, y2); else { ctx.moveTo(x, y2); started = true; }
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#FFD700"; ctx.font = "9px 'Courier New'";
+  for (let hh = 0; hh <= 24; hh += 2) {
+    const s = sunPos(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    if (s.altitude <= 0) continue;
+    const rr = (90 - s.altitude) / 90 * R, a = rad(s.bearing);
+    const x = cx + rr * Math.sin(a), y2 = cy - rr * Math.cos(a);
+    ctx.beginPath(); ctx.arc(x, y2, 3, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillText(pad2(hh % 24) + "h", x + 4, y2 - 4);
+  }
+}
+function drawComparisonChart(instant) {
+  const p = prepCanvas("comparisonChart"); if (!p) return;
+  const { ctx, w, h } = p;
+  ctx.clearRect(0, 0, w, h);
+  const loc = currentLocation;
+  let sunMax = -90, moonMax = -90;
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const t = hourInstantTZ(instant, hh, currentTZ);
+    sunMax = Math.max(sunMax, sunPos(t, loc.lat, loc.lon).altitude);
+    moonMax = Math.max(moonMax, deg(SunCalc.getMoonPosition(t, loc.lat, loc.lon).altitude));
+  }
+  const T = SunCalc.getTimes(instant, loc.lat, loc.lon);
+  const mt = SunCalc.getMoonTimes(instant, loc.lat, loc.lon);
+  const sunDur = dayDurH(T) || 0, moonDur = moonDurH(mt) || 0;
+  const groups = [
+    { label: "Altitude max (°)", sun: sunMax, moon: moonMax, max: 90 },
+    { label: "Durée visible (h)", sun: sunDur, moon: moonDur, max: 24 }
+  ];
+  const gw = (w - 30) / groups.length;
+  groups.forEach((g, gi) => {
+    const gx = 20 + gi * gw;
+    const barW = Math.min(70, gw / 3);
+    const sv = Math.max(0, g.sun), mv = Math.max(0, g.moon);
+    const h1 = sv / g.max * (h - 70), h2 = mv / g.max * (h - 70);
+    const base = h - 36;
+    ctx.fillStyle = "#EF4135"; ctx.fillRect(gx + gw/2 - barW - 6, base - h1, barW, Math.max(h1, 1));
+    ctx.fillStyle = "#c8d4e8"; ctx.fillRect(gx + gw/2 + 6, base - h2, barW, Math.max(h2, 1));
+    ctx.fillStyle = "#e8e8f0"; ctx.font = "11px 'Courier New'"; ctx.textAlign = "center";
+    ctx.fillText(g.sun.toFixed(0), gx + gw/2 - barW/2 - 6, base - h1 - 6);
+    ctx.fillText(g.moon.toFixed(0), gx + gw/2 + barW/2 + 6, base - h2 - 6);
+    ctx.fillStyle = "#8a8a9a"; ctx.font = "10px 'Segoe UI'";
+    ctx.fillText(g.label, gx + gw/2, h - 16);
+    ctx.font = "14px serif";
+    ctx.fillText("☀", gx + gw/2 - barW/2 - 6, h - 3);
+    ctx.fillText("🌙", gx + gw/2 + barW/2 + 6, h - 3);
+    ctx.textAlign = "left";
+  });
+}
+function renderCharts(instant) {
+  const loc = currentLocation, tz = currentTZ;
+  drawLineChart("sunChart", [
+    altSeries(instant, loc, tz, "#EF4135", "rgba(239,65,53,0.12)"),
+    altSeries(instant, loc, tz, "#c8d4e8", null, true)
+  ]);
+  drawLineChart("moonChart", [ altSeries(instant, loc, tz, "#c8d4e8", "rgba(200,212,232,0.10)", true) ]);
+  drawAzimuthRose(instant);
+  drawAltitudePolar(instant);
+  drawComparisonChart(instant);
+}
+
+/* ============================================================
+   11. MODULE LUNAIRE
+   ============================================================ */
+function renderMoonCompass(instant) {
+  const loc = currentLocation;
+  const path = $("moonPath24h");
+  const nowDot = $("moonNowDot");
+  const nowHalo = $("moonNowHalo");
+  const sunRef = $("sunRefDot");
+  const moonArrow = $("moonArrow");
+  if (!path || !nowDot) return;
+  const cx = 170, cy = 170, R = 150;
+  const mp = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const mb = (deg(mp.azimuth) + 180) % 360;
+  const malt = deg(mp.altitude);
+  const ill = SunCalc.getMoonIllumination(instant);
+  if (moonArrow) {
+    moonArrow.style.transform = "rotate(" + mb.toFixed(1) + "deg)";
+    moonArrow.style.color = malt > 0 ? "#c8d4e8" : "#5a5a6a";
+    const baseOpacity = malt > -3 ? (malt > 0 ? 1 : 0.5) : 0.25;
+    const phaseOpacity = 0.4 + 0.6 * ill.fraction;
+    moonArrow.style.opacity = (baseOpacity * phaseOpacity).toFixed(2);
+  }
+  let d = "";
+  let started = false;
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const t = hourInstantTZ(instant, hh, currentTZ);
+    const mpt = SunCalc.getMoonPosition(t, loc.lat, loc.lon);
+    const b = (deg(mpt.azimuth) + 180) % 360;
+    const alt = deg(mpt.altitude);
+    if (alt <= -5) { started = false; continue; }
+    const a = rad(b);
+    const x = (cx + R * Math.sin(a)).toFixed(1);
+    const y = (cy - R * Math.cos(a)).toFixed(1);
+    d += (started ? " L " : " M ") + x + " " + y;
+    started = true;
+  }
+  path.setAttribute("d", d.trim());
+  if (malt > -5) {
+    const a = rad(mb);
+    const x = cx + R * Math.sin(a), y = cy - R * Math.cos(a);
+    nowDot.setAttribute("cx", x.toFixed(1)); nowDot.setAttribute("cy", y.toFixed(1));
+    nowDot.setAttribute("opacity", malt > 0 ? "1" : "0.4");
+    nowHalo.setAttribute("cx", x.toFixed(1)); nowHalo.setAttribute("cy", y.toFixed(1));
+    nowHalo.setAttribute("opacity", malt > 0 ? "0.9" : "0.3");
+  } else { nowDot.setAttribute("opacity", "0"); nowHalo.setAttribute("opacity", "0"); }
+  const s = sunPos(instant, loc.lat, loc.lon);
+  if (s.altitude > -5) {
+    const a = rad(s.bearing);
+    sunRef.setAttribute("cx", (cx + R * Math.sin(a)).toFixed(1));
+    sunRef.setAttribute("cy", (cy - R * Math.cos(a)).toFixed(1));
+    sunRef.setAttribute("opacity", s.altitude > 0 ? "0.7" : "0.25");
+  } else sunRef.setAttribute("opacity", "0");
+}
+
+function renderMoonDirection(instant) {
+  const loc = currentLocation;
+  const mp = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const b = (deg(mp.azimuth) + 180) % 360;
+  const alt = deg(mp.altitude);
+  const s = sunPos(instant, loc.lat, loc.lon);
+  const ill = SunCalc.getMoonIllumination(instant);
+  const badge = $("moonDirBadge");
+  if (badge) {
+    badge.textContent = directionName(b);
+    badge.style.background = alt > 0 ? "linear-gradient(135deg, rgba(200,212,232,0.15), rgba(200,212,232,0.03))" : "#0d0d12";
+  }
+  const tag = $("moonDirTag");
+  if (tag) {
+    if (alt > 60) tag.textContent = "La Lune culmine presque au zénith.";
+    else if (alt > 30) tag.textContent = "Belle hauteur lunaire, bien visible.";
+    else if (alt > 5) tag.textContent = "La Lune brille bas sur l'horizon " + directionName(b).toLowerCase() + ".";
+    else if (alt > -3) tag.textContent = "La Lune est à l'horizon " + directionName(b).toLowerCase() + ".";
+    else tag.textContent = "La Lune est sous l'horizon (direction " + directionName(b).toLowerCase() + ").";
+  }
+  const az = $("moonAzimuth"); if (az) az.textContent = b.toFixed(1) + "°";
+  const ha = $("moonAltitude"); if (ha) ha.textContent = (alt >= 0 ? "+" : "") + alt.toFixed(1) + "°";
+  const bar = $("moonBar"); if (bar) bar.style.width = clamp(alt / 90 * 100, 0, 100).toFixed(0) + "%";
+  let diff = Math.abs(b - s.bearing);
+  if (diff > 180) diff = 360 - diff;
+  const diffEl = $("sunMoonAngle"); if (diffEl) diffEl.textContent = diff.toFixed(1) + "°";
+  const sec = Math.floor((((b % 360) + 360) % 360) / 45);
+  const secteurs = ["Nord", "Nord-Est", "Est", "Sud-Est", "Sud", "Sud-Ouest", "Ouest", "Nord-Ouest"];
+  const quadEl = $("moonQuadrant"); if (quadEl) quadEl.textContent = secteurs[sec];
+  const advice = $("moonAdvice");
+  if (advice) {
+    const phase = ill.phase;
+    const illumPct = Math.round(ill.fraction * 100);
+    if (alt < -3) advice.textContent = "🌑 La Lune est couchée. Profitez du ciel profond.";
+    else if (alt < 6) advice.textContent = "🌘 Lune basse sur l'horizon " + directionName(b).toLowerCase() + " (" + illumPct + "% illuminée).";
+    else if (phase < 0.05 || phase > 0.95) advice.textContent = "🌑 Nouvelle Lune (" + illumPct + "%). Idéal pour l'astrophotographie.";
+    else if (phase > 0.45 && phase < 0.55) advice.textContent = "🌕 Pleine Lune (" + illumPct + "%). Éclat maximal.";
+    else if (phase < 0.5) advice.textContent = "🌒 Lune croissante (" + illumPct + "%). Visible en début de soirée.";
+    else advice.textContent = "🌘 Lune décroissante (" + illumPct + "%). Visible en fin de nuit.";
+  }
+}
+
+function drawMoonAzimuthRose(instant) {
+  const p = prepCanvas("moonAzimuthRose"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 18;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#22222e";
+  [R, R * 2/3, R / 3].forEach(r => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke(); });
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  ctx.font = "bold 11px 'Segoe UI'"; ctx.textAlign = "center";
+  [["N", "#5B9BD5", cx, cy - R - 2], ["E", "#E8E8F0", cx + R + 2, cy + 4], ["S", "#EF4135", cx, cy + R + 10], ["O", "#FF8A80", cx - R - 10, cy + 4]].forEach(([t, c, x, y]) => { ctx.fillStyle = c; ctx.fillText(t, x, y); });
+  ctx.strokeStyle = "#c8d4e8"; ctx.lineWidth = 1.8;
+  ctx.beginPath(); let started = false;
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const mp = SunCalc.getMoonPosition(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    const b = (deg(mp.azimuth) + 180) % 360;
+    const alt = deg(mp.altitude);
+    if (alt <= -5) { started = false; continue; }
+    const a = rad(b);
+    const x = cx + R * Math.sin(a), y = cy - R * Math.cos(a);
+    if (started) ctx.lineTo(x, y); else { ctx.moveTo(x, y); started = true; }
+  }
+  ctx.stroke();
+  ctx.font = "9px 'Courier New'";
+  for (let hh = 0; hh <= 24; hh += 2) {
+    const mp = SunCalc.getMoonPosition(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    const b = (deg(mp.azimuth) + 180) % 360;
+    const alt = deg(mp.altitude);
+    if (alt <= -3) continue;
+    const a = rad(b);
+    const x = cx + R * Math.sin(a), y = cy - R * Math.cos(a);
+    ctx.fillStyle = alt > 20 ? "#FFD700" : "#8a8a9a";
+    ctx.beginPath(); ctx.arc(x, y, alt > 20 ? 3 : 2, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = "#c8d4e8";
+    ctx.fillText(pad2(hh % 24) + "h", x + 5, y - 4);
+  }
+  const mpNow = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const bNow = (deg(mpNow.azimuth) + 180) % 360;
+  const altNow = deg(mpNow.altitude);
+  if (altNow > -3) {
+    const a = rad(bNow);
+    const x = cx + R * Math.sin(a), y = cy - R * Math.cos(a);
+    ctx.strokeStyle = "#c8d4e8"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, 2 * Math.PI); ctx.stroke();
+    ctx.fillStyle = "#c8d4e8"; ctx.beginPath(); ctx.arc(x, y, 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.textAlign = "left";
+}
+
+function drawMoonAltitudePolar(instant) {
+  const p = prepCanvas("moonAltitudePolar"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 18;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#22222e";
+  [1, 2/3, 1/3].forEach(f => { ctx.beginPath(); ctx.arc(cx, cy, R * f, 0, 2 * Math.PI); ctx.stroke(); });
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+  ctx.fillStyle = "#8a8a9a"; ctx.font = "9px 'Courier New'"; ctx.textAlign = "left";
+  ctx.fillText("0°", cx + 3, cy + R - 3);
+  ctx.fillText("30°", cx + 3, cy + R * 2/3 - 3);
+  ctx.fillText("60°", cx + 3, cy + R / 3 - 3);
+  ctx.fillText("90°", cx + 3, cy - 3);
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const mp = SunCalc.getMoonPosition(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    const b = (deg(mp.azimuth) + 180) % 360;
+    const alt = deg(mp.altitude);
+    if (alt <= 0) continue;
+    const rr = (90 - alt) / 90 * R;
+    const a = rad(b);
+    const x = cx + rr * Math.sin(a), y = cy - rr * Math.cos(a);
+    const t = hh / 24;
+    const r = Math.round(200 * (1 - t) + 91 * t);
+    const g = Math.round(212 * (1 - t) + 155 * t);
+    const bl = Math.round(232 * (1 - t) + 213 * t);
+    ctx.fillStyle = `rgb(${r},${g},${bl})`;
+    ctx.beginPath(); ctx.arc(x, y, 2.2, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.font = "9px 'Courier New'"; ctx.textAlign = "left";
+  for (let hh = 0; hh <= 24; hh += 3) {
+    const mp = SunCalc.getMoonPosition(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    const b = (deg(mp.azimuth) + 180) % 360;
+    const alt = deg(mp.altitude);
+    if (alt <= 5) continue;
+    const rr = (90 - alt) / 90 * R;
+    const a = rad(b);
+    const x = cx + rr * Math.sin(a), y = cy - rr * Math.cos(a);
+    ctx.fillStyle = "#FFD700";
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = "#c8d4e8";
+    ctx.fillText(pad2(hh % 24) + "h", x + 5, y - 4);
+  }
+  const mpNow = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const bNow = (deg(mpNow.azimuth) + 180) % 360;
+  const altNow = deg(mpNow.altitude);
+  if (altNow > 0) {
+    const rr = (90 - altNow) / 90 * R;
+    const a = rad(bNow);
+    const x = cx + rr * Math.sin(a), y = cy - rr * Math.cos(a);
+    ctx.strokeStyle = "#FFD700"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.stroke();
+  }
+  ctx.textAlign = "left";
+}
+
+function drawMoonAzimuthTimeline(instant) {
+  const p = prepCanvas("moonAzimuthTimeline"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const ml = 44, mr = 14, mt = 14, mb = 28;
+  const X = x => ml + x / 24 * (w - ml - mr);
+  const Y = v => mt + (1 - v / 360) * (h - mt - mb);
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#22222e"; ctx.lineWidth = 1;
+  ctx.fillStyle = "#8a8a9a"; ctx.font = "10px 'Courier New'"; ctx.textAlign = "right";
+  [0, 90, 180, 270, 360].forEach(v => {
+    ctx.beginPath(); ctx.moveTo(ml, Y(v)); ctx.lineTo(w - mr, Y(v)); ctx.stroke();
+    const lbl = v === 0 || v === 360 ? "N" : v === 90 ? "E" : v === 180 ? "S" : v === 270 ? "O" : "";
+    ctx.fillText(lbl + " " + v + "°", ml - 4, Y(v) + 3);
+  });
+  ctx.textAlign = "center";
+  for (let hh = 0; hh <= 24; hh += 3) {
+    ctx.beginPath(); ctx.moveTo(X(hh), mt); ctx.lineTo(X(hh), h - mb); ctx.stroke();
+    ctx.fillText(pad2(hh) + "h", X(hh), h - 10);
+  }
+  ctx.strokeStyle = "#c8d4e8"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  let prevB = null;
+  for (let hh = 0; hh <= 24; hh += 0.1) {
+    const mp = SunCalc.getMoonPosition(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    const b = (deg(mp.azimuth) + 180) % 360;
+    const alt = deg(mp.altitude);
+    if (alt < -3) { prevB = null; continue; }
+    if (prevB === null) ctx.moveTo(X(hh), Y(b));
+    else {
+      let diff = b - prevB;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      ctx.lineTo(X(hh), Y(prevB + diff));
+    }
+    prevB = b;
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "#EF4135"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  let prevS = null;
+  for (let hh = 0; hh <= 24; hh += 0.1) {
+    const s = sunPos(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    if (s.altitude < -3) { prevS = null; continue; }
+    if (prevS === null) ctx.moveTo(X(hh), Y(s.bearing));
+    else {
+      let diff = s.bearing - prevS;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      ctx.lineTo(X(hh), Y(prevS + diff));
+    }
+    prevS = s.bearing;
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const mpNow = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const bNow = (deg(mpNow.azimuth) + 180) % 360;
+  const altNow = deg(mpNow.altitude);
+  if (altNow > -3) {
+    const hh = (instant.getTime() + currentTZ * 3600000) % 86400000 / 3600000;
+    ctx.fillStyle = "#FFD700";
+    ctx.beginPath(); ctx.arc(X(hh), Y(bNow), 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = "#FFD700"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(X(hh), Y(bNow), 8, 0, 2 * Math.PI); ctx.stroke();
+  }
+  ctx.textAlign = "left"; ctx.font = "10px 'Segoe UI'";
+  ctx.fillStyle = "#c8d4e8"; ctx.fillText("— Lune", ml + 5, mt + 12);
+  ctx.fillStyle = "#EF4135"; ctx.fillText("- - Soleil", ml + 55, mt + 12);
+}
+
+function drawMoonSunAzimuthCompare(instant) {
+  const p = prepCanvas("moonSunAzimuthCompare"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  ctx.clearRect(0, 0, w, h);
+  const R = Math.min(w, h) / 2 - 30;
+  const cx = w / 2, cy = h / 2;
+  ctx.strokeStyle = "#22222e";
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, R / 2, 0, 2 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  ctx.font = "bold 11px 'Segoe UI'"; ctx.textAlign = "center";
+  [["N", "#5B9BD5", cx, cy - R - 6], ["E", "#E8E8F0", cx + R + 12, cy + 4], ["S", "#EF4135", cx, cy + R + 14], ["O", "#FF8A80", cx - R - 12, cy + 4]].forEach(([t, c, x, y]) => { ctx.fillStyle = c; ctx.fillText(t, x, y); });
+  const s = sunPos(instant, loc.lat, loc.lon);
+  if (s.altitude > -3) {
+    const a = rad(s.bearing);
+    const x = cx + R * Math.sin(a) * 0.95, y = cy - R * Math.cos(a) * 0.95;
+    ctx.strokeStyle = "#EF4135"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = "#EF4135"; ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.fill();
+    ctx.font = "11px 'Courier New'"; ctx.fillStyle = "#EF4135";
+    ctx.fillText("☀ " + Math.round(s.bearing) + "°", x + Math.sign(x - cx) * 25, y - 10);
+  }
+  const mp = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+  const mb = (deg(mp.azimuth) + 180) % 360;
+  const malt = deg(mp.altitude);
+  if (malt > -3) {
+    const a = rad(mb);
+    const x = cx + R * Math.sin(a) * 0.95, y = cy - R * Math.cos(a) * 0.95;
+    ctx.strokeStyle = "#c8d4e8"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = "#c8d4e8"; ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.fill();
+    ctx.font = "11px 'Courier New'"; ctx.fillStyle = "#c8d4e8";
+    ctx.fillText("🌙 " + Math.round(mb) + "°", x + Math.sign(x - cx) * 25, y - 10);
+  }
+  let diff = Math.abs(s.bearing - mb);
+  if (diff > 180) diff = 360 - diff;
+  ctx.font = "bold 12px 'Courier New'"; ctx.fillStyle = "#FFD700"; ctx.textAlign = "center";
+  ctx.fillText("Écart : " + diff.toFixed(1) + "°", cx, cy + 4);
+  ctx.textAlign = "left";
+}
+
+function drawMoonSunSectors(instant) {
+  const p = prepCanvas("moonSunSectors"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 30;
+  ctx.clearRect(0, 0, w, h);
+  const N = 16;
+  const sunCount = new Array(N).fill(0);
+  const moonCount = new Array(N).fill(0);
+  for (let hh = 0; hh <= 24; hh += 0.25) {
+    const t = hourInstantTZ(instant, hh, currentTZ);
+    const s = sunPos(t, loc.lat, loc.lon);
+    if (s.altitude > 0) sunCount[Math.floor(s.bearing / (360 / N))]++;
+    const mp = SunCalc.getMoonPosition(t, loc.lat, loc.lon);
+    const mb = (deg(mp.azimuth) + 180) % 360;
+    if (deg(mp.altitude) > 0) moonCount[Math.floor(mb / (360 / N))]++;
+  }
+  const maxCount = Math.max(...sunCount, ...moonCount, 1);
+  ctx.strokeStyle = "#22222e";
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, R / 2, 0, 2 * Math.PI); ctx.stroke();
+  for (let i = 0; i < N; i++) {
+    const a = rad(i * 360 / N - 90);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.cos(a), cy + R * Math.sin(a)); ctx.stroke();
+  }
+  for (let i = 0; i < N; i++) {
+    if (sunCount[i] === 0) continue;
+    const a1 = rad(i * 360 / N - 90 - 180 / N);
+    const a2 = rad(i * 360 / N - 90 + 180 / N);
+    const rMax = sunCount[i] / maxCount * (R - 8);
+    ctx.fillStyle = "rgba(239,65,53,0.55)";
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, rMax, a1, a2); ctx.closePath(); ctx.fill();
+  }
+  for (let i = 0; i < N; i++) {
+    if (moonCount[i] === 0) continue;
+    const a1 = rad(i * 360 / N - 90 - 180 / N * 0.8);
+    const a2 = rad(i * 360 / N - 90 + 180 / N * 0.8);
+    const rMin = R, rMax = R + moonCount[i] / maxCount * 25;
+    ctx.fillStyle = "rgba(200,212,232,0.6)";
+    ctx.beginPath(); ctx.arc(cx, cy, rMax, a1, a2); ctx.arc(cx, cy, rMin, a2, a1, true); ctx.closePath(); ctx.fill();
+  }
+  ctx.font = "bold 11px 'Segoe UI'"; ctx.textAlign = "center";
+  [["N", "#5B9BD5", cx, cy - R - 24], ["E", "#E8E8F0", cx + R + 24, cy + 4], ["S", "#EF4135", cx, cy + R + 30], ["O", "#FF8A80", cx - R - 24, cy + 4]].forEach(([t, c, x, y]) => { ctx.fillStyle = c; ctx.fillText(t, x, y); });
+  ctx.font = "10px 'Segoe UI'"; ctx.textAlign = "left";
+  ctx.fillStyle = "#EF4135"; ctx.fillRect(10, 10, 12, 8); ctx.fillText("Soleil", 26, 18);
+  ctx.fillStyle = "#c8d4e8"; ctx.fillRect(80, 10, 12, 8); ctx.fillText("Lune", 96, 18);
+}
+
+function drawMoonQuadrantsChart(instant) {
+  const p = prepCanvas("moonQuadrantsChart"); if (!p) return;
+  const { ctx, w, h } = p;
+  const loc = currentLocation;
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 20;
+  ctx.clearRect(0, 0, w, h);
+  const quadrants = [
+    { name: "Nord-Est", color: "#5B9BD5", count: 0 },
+    { name: "Sud-Est", color: "#EF4135", count: 0 },
+    { name: "Sud-Ouest", color: "#FF8A80", count: 0 },
+    { name: "Nord-Ouest", color: "#c8d4e8", count: 0 }
+  ];
+  const seen = new Set();
+  for (let hh = 0; hh <= 24; hh += 0.1) {
+    const mp = SunCalc.getMoonPosition(hourInstantTZ(instant, hh, currentTZ), loc.lat, loc.lon);
+    if (deg(mp.altitude) <= 0) continue;
+    const b = (deg(mp.azimuth) + 180) % 360;
+    seen.add(Math.floor(b / 90) + ":" + Math.floor(hh));
+  }
+  seen.forEach(k => { quadrants[parseInt(k.split(":")[0], 10)].count++; });
+  const total = quadrants.reduce((a, b) => a + b.count, 0) || 1;
+  let startAngle = -Math.PI / 2;
+  quadrants.forEach(q => {
+    const angle = (q.count / total) * Math.PI * 2;
+    ctx.fillStyle = q.color + "99";
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, startAngle, startAngle + angle); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#0d0d12"; ctx.lineWidth = 2; ctx.stroke();
+    if (q.count > 0) {
+      const midA = startAngle + angle / 2;
+      ctx.fillStyle = "#0d0d12"; ctx.font = "bold 11px 'Segoe UI'"; ctx.textAlign = "center";
+      ctx.fillText(Math.round(q.count / total * 100) + "%", cx + R * 0.65 * Math.cos(midA), cy + R * 0.65 * Math.sin(midA) + 4);
+    }
+    startAngle += angle;
+  });
+  ctx.font = "10px 'Segoe UI'"; ctx.textAlign = "left";
+  quadrants.forEach((q, i) => {
+    const y = 10 + i * 16;
+    ctx.fillStyle = q.color; ctx.fillRect(10, y, 12, 10);
+    ctx.fillStyle = "#c8c8d8";
+    ctx.fillText(q.name + " (" + Math.round(q.count / total * 100) + "%)", 26, y + 9);
+  });
+}
+
+function renderMoonHourlyTable(instant) {
+  const el = $("moonHourlyTable"); if (!el) return;
+  const loc = currentLocation;
+  const ill = SunCalc.getMoonIllumination(instant);
+  const rows = [];
+  for (let hh = 0; hh < 24; hh++) {
+    const t = hourInstantTZ(instant, hh, currentTZ);
+    const mp = SunCalc.getMoonPosition(t, loc.lat, loc.lon);
+    const b = (deg(mp.azimuth) + 180) % 360;
+    const alt = deg(mp.altitude);
+    const isNow = Math.abs(((instant.getTime() + currentTZ * 3600000) % 86400000) / 3600000 - hh) < 0.5;
+    let etat;
+    if (alt < -18) etat = "🌌 Sous l'horizon";
+    else if (alt < -6) etat = "🌆 Crépuscule";
+    else if (alt < 0) etat = "💙 Heure bleue";
+    else if (alt < 6) etat = "🌅 Heure dorée";
+    else if (alt < 45) etat = "🌤️ Visible";
+    else etat = "🌕 Haute dans le ciel";
+    rows.push({ hh, b, alt, etat, isNow, dir: directionName(b), illum: Math.round(ill.fraction * 100) });
+  }
+  el.innerHTML = rows.map(r => `
+    <tr style="${r.isNow ? "background:rgba(200,212,232,0.08);font-weight:bold;" : ""}">
+      <td style="color:${r.isNow ? "#FFD700" : "var(--moon)"}">${pad2(r.hh)}:00${r.isNow ? " ⬅" : ""}</td>
+      <td style="color:var(--moon)">${r.b.toFixed(1)}°</td>
+      <td>${r.dir}</td>
+      <td style="color:${r.alt > 0 ? "#5B9BD5" : "var(--muted)"}">${(r.alt >= 0 ? "+" : "") + r.alt.toFixed(1)}°</td>
+      <td style="font-size:0.8rem;">${r.etat}</td>
+      <td style="color:var(--muted)">${r.illum}%</td>
+    </tr>
+  `).join("");
+}
+
+function renderMoonModule(instant) {
+  renderMoonCompass(instant);
+  renderMoonDirection(instant);
+  drawMoonAzimuthRose(instant);
+  drawMoonAltitudePolar(instant);
+  drawMoonAzimuthTimeline(instant);
+  drawMoonSunAzimuthCompare(instant);
+  drawMoonSunSectors(instant);
+  drawMoonQuadrantsChart(instant);
+  renderMoonHourlyTable(instant);
+}
+
+/* ============================================================
+   12. MÉTÉO (Open-Meteo)
+   ============================================================ */
+const WMO = {0:["☀️","Ciel dégagé"],1:["🌤️","Plutôt dégagé"],2:["⛅","Partiellement nuageux"],3:["☁️","Couvert"],45:["🌫️","Brouillard"],48:["🌫️","Brouillard givrant"],51:["🌦️","Bruine légère"],53:["🌦️","Bruine"],55:["🌧️","Bruine dense"],61:["🌦️","Pluie faible"],63:["🌧️","Pluie"],65:["⛈️","Pluie forte"],71:["🌨️","Neige faible"],73:["🌨️","Neige"],75:["❄️","Neige forte"],80:["🌦️","Averses faibles"],81:["🌧️","Averses"],82:["⛈️","Averses fortes"],95:["⛈️","Orage"],96:["⛈️","Orage et grêle"],99:["⛈️","Orage et grêle"]};
+async function loadWeather(loc) {
+  const el = $("weatherGrid"); if (!el) return;
+  el.innerHTML = '<em style="color:var(--muted);font-size:.85rem;">Chargement…</em>';
+  try {
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=" + loc.lat + "&longitude=" + loc.lon +
+      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,cloud_cover,wind_speed_10m,pressure_msl" +
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto&forecast_days=7";
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const c = j.current || {};
+    const wi = WMO[c.weather_code] || ["🌡️","—"];
+    const items = [
+      [wi[0], wi[1], Math.round(c.temperature_2m ?? 0) + "°C"],
+      ["🌡️","Ressentie", Math.round(c.apparent_temperature ?? 0) + "°C"],
+      ["💧","Humidité", Math.round(c.relative_humidity_2m ?? 0) + "%"],
+      ["🌬️","Vent", Math.round(c.wind_speed_10m ?? 0) + " km/h"],
+      ["☁️","Nuages", Math.round(c.cloud_cover ?? 0) + "%"],
+      ["📊","Pression", Math.round(c.pressure_msl ?? 1013) + " hPa"],
+      [c.is_day ? "☀️" : "🌙", c.is_day ? "Jour" : "Nuit", wi[0]]
+    ];
+    el.innerHTML = items.map(([ic, l, v]) => '<div class="weather-item"><div class="wi-icon">' + ic + '</div><div class="wi-label">' + l + '</div><div class="wi-value">' + v + '</div></div>').join("");
+    const d = j.daily || {};
+    const fg = $("forecastGrid");
+    if (fg && d.time) {
+      fg.innerHTML = d.time.map((t, i) => {
+        const day = new Date(t + "T12:00:00");
+        const name = day.toLocaleDateString("fr-FR", { weekday: "short" });
+        const code = WMO[d.weather_code[i]] || ["🌡️","—"];
+        const sr = (d.sunrise[i] || "").slice(11, 16), ss = (d.sunset[i] || "").slice(11, 16);
+        const uv = d.uv_index_max && d.uv_index_max[i] != null ? d.uv_index_max[i] : 0;
+        return '<div class="forecast-day"><div class="fd-name">' + name + '</div><div class="fd-icon">' + code[0] + '</div><div class="fd-temp">' + Math.round(d.temperature_2m_max[i]) + '°</div><div class="fd-tmin">' + Math.round(d.temperature_2m_min[i]) + '°</div><div class="fd-sun">🌅 ' + sr + '<br>🌇 ' + ss + '</div><div class="fd-uv">UV ' + Math.round(uv) + '</div></div>';
+      }).join("");
+    }
+  } catch (e) {
+    el.innerHTML = '<em style="color:var(--rouge);font-size:.85rem;">Météo indisponible : ' + e.message + '</em>';
+  }
+}
+
+/* ============================================================
+   13. PLANÈTES + MÉTÉORES
+   ============================================================ */
+const PLANETS = [
+  { body:"Mercury", name:"Mercure", icon:"☿" },
+  { body:"Venus", name:"Vénus", icon:"♀" },
+  { body:"Mars", name:"Mars", icon:"♂" },
+  { body:"Jupiter", name:"Jupiter", icon:"♃" },
+  { body:"Saturn", name:"Saturne", icon:"♄" }
+];
+function renderPlanets(instant, loc) {
+  const el = $("planetsList"); if (!el) return;
+  if (typeof Astronomy === "undefined") { el.innerHTML = '<em style="color:var(--muted)">Astronomy Engine indisponible.</em>'; return; }
+  try {
+    const observer = new Astronomy.Observer(loc.lat, loc.lon, loc.altitude || 0);
+    const rows = PLANETS.map(p => {
+      try {
+        const eq = Astronomy.Equator(p.body, instant, observer, true, true);
+        const hor = Astronomy.Horizon(instant, observer, eq.ra, eq.dec, "normal");
+        const illum = Astronomy.Illumination(p.body, instant);
+        const vis = hor.altitude > 5;
+        return '<div class="planet-item" style="border-left-color:' + (vis ? "#5B9BD5" : "#3a3a4a") + '">' +
+          '<span class="planet-icon">' + p.icon + '</span>' +
+          '<span class="planet-name">' + p.name + (vis ? " ✓" : "") + '</span>' +
+          '<span class="planet-coords">' + Math.round(hor.azimuth) + '° / ' + Math.round(hor.altitude) + '°</span>' +
+          '<span class="planet-mag">mag ' + illum.mag.toFixed(1) + '</span></div>';
+      } catch (e) { return ""; }
+    }).join("");
+    el.innerHTML = rows || '<em style="color:var(--muted)">Aucune donnée.</em>';
+  } catch (e) {
+    el.innerHTML = '<em style="color:var(--rouge)">Erreur planètes : ' + e.message + '</em>';
+  }
+}
+
+const METEOR_SHOWERS = [
+  { name:"Quadrantides", peak:[1,3], zhr:120, color:"#5B9BD5", radiant:{ra:230, dec:49} },
+  { name:"Lyrides", peak:[4,22], zhr:18, color:"#FF8A80", radiant:{ra:271, dec:34} },
+  { name:"Éta Aquarides", peak:[5,6], zhr:50, color:"#5B9BD5", radiant:{ra:338, dec:-1} },
+  { name:"Perséides", peak:[8,12], zhr:100, color:"#EF4135", radiant:{ra:48, dec:58} },
+  { name:"Orionides", peak:[10,21], zhr:20, color:"#FF8A80", radiant:{ra:95, dec:16} },
+  { name:"Léonides", peak:[11,17], zhr:15, color:"#EF4135", radiant:{ra:152, dec:22} },
+  { name:"Géminides", peak:[12,14], zhr:150, color:"#FFD700", radiant:{ra:112, dec:32} },
+  { name:"Ursides", peak:[12,22], zhr:10, color:"#5B9BD5", radiant:{ra:217, dec:76} }
+];
+function getActiveMeteorShowers(date) {
+  const y = date.getUTCFullYear();
+  return METEOR_SHOWERS.map(s => {
+    const peak = Date.UTC(y, s.peak[0] - 1, s.peak[1]);
+    const peakNext = Date.UTC(y + 1, s.peak[0] - 1, s.peak[1]);
+    const peakPrev = Date.UTC(y - 1, s.peak[0] - 1, s.peak[1]);
+    const t = date.getTime();
+    const best = Math.abs(t - peak) <= Math.abs(t - peakPrev) && Math.abs(t - peak) <= Math.abs(t - peakNext) ? peak : (Math.abs(t - peakNext) < Math.abs(t - peakPrev) ? peakNext : peakPrev);
+    const daysToPeak = Math.round((best - t) / 86400000);
+    const active = Math.abs(daysToPeak) <= 7;
+    if (!active) return null;
+    return { ...s, daysToPeak, isPeak: daysToPeak === 0 };
+  }).filter(Boolean);
+}
+function radiantToHorizon(ra, dec, date, lat, lon) {
+  if (typeof Astronomy === "undefined") return null;
+  try {
+    const observer = new Astronomy.Observer(lat, lon, 0);
+    const hor = Astronomy.Horizon(date, observer, ra / 15, dec, "normal");
+    return { azimuth: hor.azimuth, altitude: hor.altitude };
+  } catch (e) { return null; }
+}
+function renderMeteorShowers(date, loc) {
+  const showers = getActiveMeteorShowers(date);
+  const el = $("meteorList"); if (!el) return;
+  if (!showers.length) { el.innerHTML = '<em style="color:var(--muted)">Aucune pluie active.</em>'; return; }
+  el.innerHTML = showers.map(s => {
+    const rad = radiantToHorizon(s.radiant.ra, s.radiant.dec, date, loc.lat, loc.lon);
+    const visible = rad && rad.altitude > 15;
+    const peakTxt = s.isPeak ? "🌟 PIC CE SOIR" : "Pic dans " + s.daysToPeak + " j";
+    const radiantTxt = rad ? Math.round(rad.azimuth) + "° / " + Math.round(rad.altitude) + "°" : "—";
+    const visBadge = visible ? '<span style="color:#5B9BD5">✓ Visible</span>' : '<span style="color:#EF4135">✗ Sous l&#39;horizon</span>';
+    return `<div class="meteor-item" style="border-left-color:${s.color}">
+      <div class="meteor-head"><span class="meteor-name">${s.name}</span><span class="meteor-zhr">${s.zhr}/h</span></div>
+      <div class="meteor-info">${peakTxt} · Radiant : ${radiantTxt} ${visBadge}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ============================================================
+   14. ISS
+   ============================================================ */
+async function fetchISS() {
+  const r = await fetch("https://api.wheretheiss.at/v1/satellites/25544");
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return await r.json();
+}
+async function renderISSPasses(loc) {
+  const el = $("issList"); if (!el) return;
+  el.innerHTML = '<em style="color:var(--muted)">Calcul ISS…</em>';
+  try {
+    const iss = await fetchISS();
+    const dist = haversine(loc.lat, loc.lon, iss.latitude, iss.longitude);
+    el.innerHTML = `
+      <div class="iss-card">
+        <div class="iss-head"><span class="iss-icon">🛰️</span><span class="iss-name">ISS — Station Spatiale Internationale</span></div>
+        <div class="iss-info">
+          <div><span class="iss-label">Distance</span><span class="iss-value">${dist.toFixed(0)} km</span></div>
+          <div><span class="iss-label">Altitude orbite</span><span class="iss-value">${iss.altitude.toFixed(0)} km</span></div>
+          <div><span class="iss-label">Vitesse</span><span class="iss-value">${iss.velocity.toFixed(0)} km/h</span></div>
+        </div>
+        <p class="iss-note">Pour des prédictions précises : <a href="https://heavens-above.com" target="_blank" rel="noopener">Heavens-Above</a></p>
+      </div>`;
+  } catch (e) {
+    el.innerHTML = '<em style="color:var(--rouge)">ISS indisponible : ' + e.message + '</em>';
+  }
+}
+
+/* ============================================================
+   15. FÊTES (Réunion + Europe)
+   ============================================================ */
+const CREOLE_FESTIVALS = [
+  { name:"Cavadee",           date:"2026-02-01", tradition:"tamoule",    icon:"🛕", lieu:"Saint-André, Saint-Louis" },
+  { name:"Maha Shivaratri",   date:"2026-02-15", tradition:"tamoule",    icon:"🔱", lieu:"Temples tamouls" },
+  { name:"Nouvel An chinois", date:"2026-02-17", tradition:"chinoise",   icon:"🐉", lieu:"Saint-Denis, Saint-Pierre" },
+  { name:"Aïd el-Fitr",       date:"2026-03-20", tradition:"musulmane",  icon:"🌙", lieu:"Toute l'île" },
+  { name:"Marche sur le feu", date:"2026-03-28", tradition:"tamoule",    icon:"🔥", lieu:"Saint-André, Sainte-Suzanne" },
+  { name:"Fête de la Canne",  date:"2026-05-01", tradition:"locale",     icon:"🎋", lieu:"Toute l'île" },
+  { name:"Dipavali",          date:"2026-11-08", tradition:"tamoule",    icon:"🪔", lieu:"Saint-André" },
+  { name:"Fèt Kaf",           date:"2026-12-20", tradition:"locale",     icon:"✊", lieu:"Toute l'île" },
+  { name:"Noël",              date:"2026-12-25", tradition:"chrétienne", icon:"🎄", lieu:"Toute l'île" }
+];
+
+const EUROPE_FESTIVALS = [
+  { name:"Jour de l'An",        date:"2026-01-01", tradition:"chrétienne", icon:"🎉", lieu:"Toute l'Europe" },
+  { name:"Épiphanie",           date:"2026-01-06", tradition:"chrétienne", icon:"👑", lieu:"Europe catholique" },
+  { name:"Fête des Rois",       date:"2026-01-06", tradition:"chrétienne", icon:"🍰", lieu:"Espagne, France" },
+  { name:"Carnaval de Venise",  date:"2026-02-10", tradition:"locale",     icon:"🎭", lieu:"Venise (Italie)" },
+  { name:"Fête nationale grecque", date:"2026-03-25", tradition:"locale",  icon:"🇬🇷", lieu:"Grèce" },
+  { name:"Pâques",              date:"2026-04-05", tradition:"chrétienne", icon:"🐣", lieu:"Toute l'Europe" },
+  { name:"Fête du Travail",     date:"2026-05-01", tradition:"locale",     icon:"⚒️", lieu:"Toute l'Europe" },
+  { name:"Jour de l'Europe",    date:"2026-05-09", tradition:"locale",     icon:"🇪🇺", lieu:"Union européenne" },
+  { name:"Fête nationale norvégienne", date:"2026-05-17", tradition:"locale", icon:"🇳🇴", lieu:"Norvège" },
+  { name:"Fête de la Saint-Jean", date:"2026-06-24", tradition:"locale",   icon:"🔥", lieu:"Scandinavie, Espagne" },
+  { name:"Fête nationale française", date:"2026-07-14", tradition:"locale", icon:"🇫🇷", lieu:"France" },
+  { name:"Fête nationale belge", date:"2026-07-21", tradition:"locale",    icon:"🇧🇪", lieu:"Belgique" },
+  { name:"Fête nationale suisse", date:"2026-08-01", tradition:"locale",   icon:"🇨🇭", lieu:"Suisse" },
+  { name:"Toussaint",           date:"2026-11-01", tradition:"chrétienne", icon:"🕯️", lieu:"Toute l'Europe" },
+  { name:"Saint-Nicolas",       date:"2026-12-06", tradition:"chrétienne", icon:"🎁", lieu:"Pays-Bas, Belgique" },
+  { name:"Noël",                date:"2026-12-25", tradition:"chrétienne", icon:"🎄", lieu:"Toute l'Europe" },
+  { name:"Saint-Étienne",       date:"2026-12-26", tradition:"chrétienne", icon:"⛪", lieu:"Europe centrale" }
+];
+
+function renderCreoleCalendar() {
+  const el = $("creoleCalendar"); if (!el) return;
+  const now = new Date();
+  const festivals = currentLocation.name === "La Réunion" ? CREOLE_FESTIVALS : EUROPE_FESTIVALS;
+  el.innerHTML = [...festivals].sort((a, b) => a.date.localeCompare(b.date)).map(f => {
+    const d = new Date(f.date + "T12:00:00Z");
+    const ill = SunCalc.getMoonIllumination(d);
+    const past = d < now;
+    const dateTxt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(d);
+    return `<div class="festival-card" data-tradition="${f.tradition}" style="${past ? "opacity:0.45;" : ""}">
+      <div class="fest-icon">${f.icon}</div>
+      <div class="fest-body">
+        <div class="fest-name">${f.name}</div>
+        <div class="fest-date">${past ? "✓ " : ""}${dateTxt}</div>
+        <div class="fest-lieu">📍 ${f.lieu}</div>
+      </div>
+      <div class="fest-moon" title="Phase lunaire">${moonEmoji(ill.phase)}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ============================================================
+   16. ÉVÉNEMENTS + PHOTO + SLIDER
+   ============================================================ */
+function renderEvents(year) {
+  const el = $("eventsGrid"); if (!el) return;
+  let evts = null;
+  if (typeof Astronomy !== "undefined") {
+    try {
+      const s = Astronomy.Seasons(year);
+      evts = [
+        { cls:"autumn", icon:"🍂", name:"Équinoxe de mars", sub:"Printemps (N) · Automne (S)", t:s.march_equinox.date },
+        { cls:"winter", icon:"❄️", name:"Solstice de juin", sub:"Été (N) · Hiver (S)", t:s.june_solstice.date },
+        { cls:"spring", icon:"🌸", name:"Équinoxe de septembre", sub:"Automne (N) · Printemps (S)", t:s.september_equinox.date },
+        { cls:"summer", icon:"☀️", name:"Solstice de décembre", sub:"Hiver (N) · Été (S)", t:s.december_solstice.date }
+      ];
+    } catch (e) { evts = null; }
+  }
+  if (!evts) {
+    evts = [
+      { cls:"autumn", icon:"🍂", name:"Équinoxe de mars", sub:"Printemps (N) · Automne (S)", t:new Date(Date.UTC(year, 2, 20, 12)) },
+      { cls:"winter", icon:"❄️", name:"Solstice de juin", sub:"Été (N) · Hiver (S)", t:new Date(Date.UTC(year, 5, 21, 12)) },
+      { cls:"spring", icon:"🌸", name:"Équinoxe de septembre", sub:"Automne (N) · Printemps (S)", t:new Date(Date.UTC(year, 8, 22, 12)) },
+      { cls:"summer", icon:"☀️", name:"Solstice de décembre", sub:"Hiver (N) · Été (S)", t:new Date(Date.UTC(year, 11, 21, 12)) }
+    ];
+  }
+  el.innerHTML = evts.map(e => {
+    const d = new Date(e.t.getTime() + currentTZ * 3600000);
+    const dateTxt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" }).format(d);
+    const timeTxt = pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
+    return `<div class="event-card ${e.cls}">
+      <div class="event-name">${e.icon} ${e.name}</div>
+      <div class="event-date">${dateTxt} · ${timeTxt} (heure de ${currentLocation.city})</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:.25rem;">${e.sub}</div>
+    </div>`;
+  }).join("");
+}
+function renderPhotoMode(instant) {
+  const el = $("photoMode"); if (!el) return;
+  const loc = currentLocation;
+  const T = SunCalc.getTimes(instant, loc.lat, loc.lon);
+  const slots = [
+    { icon:"🌄", title:"Aube civile", time:T.dawn, cls:"blue", desc:"Lumières pastel" },
+    { icon:"🌅", title:"Lever de soleil", time:T.sunrise, cls:"golden", desc:"Lumière rasante" },
+    { icon:"🏆", title:"Fin heure dorée matin", time:T.goldenHourEnd, cls:"golden", desc:"Derniers tons dorés" },
+    { icon:"☀️", title:"Midi solaire", time:T.solarNoon, cls:"noon", desc:"Lumière dure" },
+    { icon:"🏆", title:"Heure dorée soir", time:T.goldenHour, cls:"golden", desc:"Lumière chaude" },
+    { icon:"🌇", title:"Coucher de soleil", time:T.sunset, cls:"golden", desc:"Ciel flamboyant" },
+    { icon:"💙", title:"Heure bleue", time:T.dusk, cls:"blue", desc:"Tons froids" },
+    { icon:"🌌", title:"Nuit noire", time:T.night, cls:"blue", desc:"Astrophoto" }
+  ];
+  el.innerHTML = slots.map(s => `<div class="photo-slot ${s.cls}">
+    <div class="icon">${s.icon}</div>
+    <div class="title">${s.title}</div>
+    <div class="time">${fmtTime(s.time)}</div>
+    <div class="desc">${s.desc}</div>
+  </div>`).join("");
+}
+function toggleTimeAnimation() {
+  isAnimating = !isAnimating;
+  $("btnAnimate").textContent = isAnimating ? "⏸️ Pause" : "▶️ Animer";
+  if (isAnimating) {
+    animTimer = setInterval(() => {
+      const sl = $("timeSlider");
+      const v = (parseFloat(sl.value) + 0.25) % 24;
+      sl.value = v;
+      sl.dispatchEvent(new Event("input"));
+    }, 120);
+  } else clearInterval(animTimer);
+}
+
+/* ============================================================
+   17. CARTE MAPLIBRE
+   ============================================================ */
+function initMap() {
+  if (map || typeof maplibregl === "undefined") return;
+  const mapEl = $("mapReunion"); if (!mapEl) return;
+  const regionColors = { Nord:"#5B9BD5", Sud:"#EF4135", Est:"#E8E8F0", Ouest:"#FF8A80" };
+  try {
+    map = new maplibregl.Map({
+      container: "mapReunion",
+      style: {
+        version: 8,
+        sources: {
+          base: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap" },
+          dem: { type: "raster-dem", tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], encoding: "terrarium", tileSize: 256, maxzoom: 15 }
+        },
+        layers: [{ id: "base", type: "raster", source: "base" }]
+      },
+      center: [10, 48], zoom: 3.5, pitch: 0, bearing: 0
+    });
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+    map.on("load", () => {
+      try { map.setTerrain({ source: "dem", exaggeration: 1.4 }); } catch (e) {}
+      Object.keys(ALL_LOCATIONS).forEach(k => {
+        const l = ALL_LOCATIONS[k];
+        const el = document.createElement("div");
+        el.className = "mk";
+        el.style.background = regionColors[l.region] || "#5B9BD5";
+        el.title = l.city;
+        el.addEventListener("click", () => selectCity(k));
+        const mk = new maplibregl.Marker({ element: el }).setLngLat([l.lon, l.lat]).addTo(map);
+        markers[k] = { mk, el };
+      });
+      updateMarkers();
+    });
+  } catch (e) { console.error("MapLibre:", e); }
+}
+function updateMarkers() { Object.keys(markers).forEach(k => markers[k].el.classList.toggle("mk-on", k === currentKey)); }
+function addGeoMarker(lat, lon) {
+  if (!map) return;
+  if (geoMarker) geoMarker.remove();
+  const el = document.createElement("div");
+  el.className = "mk mk-me";
+  geoMarker = new maplibregl.Marker({ element: el }).setLngLat([lon, lat]).addTo(map);
+  map.flyTo({ center: [lon, lat], zoom: 8 });
+}
+function flyToLocation(loc) {
+  if (!map) return;
+  map.flyTo({ center: [loc.lon, loc.lat], zoom: 7 });
+}
+
+/* ============================================================
+   18. SÉLECTEURS
+   ============================================================ */
+function renderCitySelector() {
+  const el = $("citySelector"); if (!el) return;
+  let keys;
+  if (currentRegion === "REUNION") keys = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].name === "La Réunion");
+  else if (currentRegion === "PARIS") keys = ["PARIS"];
+  else if (currentRegion === "EUROPE") keys = Object.keys(EUROPE_LOCATIONS);
+  else keys = Object.keys(ALL_LOCATIONS);
+  el.innerHTML = keys.map(k => {
+    const l = ALL_LOCATIONS[k];
+    const fav = favorites.includes(k);
+    return `<button class="city-btn ${k === currentKey ? "active" : ""}" onclick="selectCity('${k}')">
+      <span class="city-name">${l.city}</span>
+      <span class="city-info">${l.name} · ${l.altitude} m</span>
+      <span class="fav ${fav ? "on" : ""}" onclick="event.stopPropagation();toggleFav('${k}')">${fav ? "★" : "☆"}</span>
+    </button>`;
+  }).join("");
+  renderFavBar();
+}
+function toggleFav(k) {
+  const i = favorites.indexOf(k);
+  if (i >= 0) favorites.splice(i, 1); else favorites.push(k);
+  try { localStorage.setItem("oracle-favs", JSON.stringify(favorites)); } catch (e) {}
+  renderCitySelector();
+  showToast(favorites.includes(k) ? "⭐ Ajouté aux favoris" : "☆ Retiré");
+}
+function renderFavBar() {
+  const el = $("favBar"); if (!el) return;
+  if (!favorites.length) { el.innerHTML = ""; return; }
+  el.innerHTML = favorites.map(k => `<button class="small" onclick="selectCity('${k}')">⭐ ${ALL_LOCATIONS[k].city}</button>`).join("");
+}
+function selectCity(k) {
+  if (ALL_LOCATIONS[k]) {
+    currentKey = k;
+    currentLocation = ALL_LOCATIONS[k];
+    if (currentLocation.name === "La Réunion") currentRegion = "REUNION";
+    else if (k === "PARIS") currentRegion = "PARIS";
+    else if (EUROPE_LOCATIONS[k]) currentRegion = "EUROPE";
+  }
+  syncRegionTabs();
+  renderCitySelector();
+  updateMarkers();
+  flyToLocation(currentLocation);
+  refreshAll();
+  loadWeather(currentLocation);
+  renderISSPasses(currentLocation);
+  renderCreoleCalendar();
+}
+function switchRegion(region) {
+  currentRegion = region;
+  syncRegionTabs();
+  renderCitySelector();
+  if (region === "REUNION") selectCity("SAINT_DENIS");
+  else if (region === "PARIS") selectCity("PARIS");
+  else if (region === "EUROPE") {
+    if (!EUROPE_LOCATIONS[currentKey]) selectCity("PARIS");
+  }
+}
+function syncRegionTabs() {
+  const tabs = { REUNION: "tabReunion", PARIS: "tabParis", EUROPE: "tabEurope" };
+  Object.values(tabs).forEach(id => { const b = $(id); if (b) b.classList.remove("active"); });
+  if ($(tabs[currentRegion])) $(tabs[currentRegion]).classList.add("active");
+}
+function switchMode(m) {
+  currentMode = m;
+  document.querySelectorAll(".mode-solo,.mode-compare,.mode-atlas,.mode-pv,.mode-comparePvgis").forEach(d => d.classList.remove("active"));
+  const el = $("mode" + m.charAt(0).toUpperCase() + m.slice(1));
+  if (el) el.classList.add("active");
+  document.querySelectorAll(".mode-tabs button").forEach(b => b.classList.remove("active"));
+  const tab = { solo: "tabSolo", compare: "tabCompare", atlas: "tabAtlas", pv: "tabPv", comparePvgis: "tabComparePvgis" }[m];
+  if ($(tab)) $(tab).classList.add("active");
+  syncMobileNav();
+  if (m === "solo") { initMap(); requestAnimationFrame(refreshAll); }
+  if (m === "compare") renderCompare();
+  if (m === "atlas") renderAtlas();
+  if (m === "pv") renderPV();
+  if (m === "comparePvgis") renderPVGISCompare();
+}
+
+/* ============================================================
+   19. COMPARAISON
+   ============================================================ */
+function initCompare() {
+  const keys = Object.keys(ALL_LOCATIONS);
+  const html = keys.map(k => `<option value="${k}">${ALL_LOCATIONS[k].city} (${ALL_LOCATIONS[k].name})</option>`).join("");
+  $("city1Select").innerHTML = html;
+  $("city2Select").innerHTML = html;
+  $("city1Select").value = "SAINT_DENIS";
+  $("city2Select").value = "MADRID";
+  $("city1Select").addEventListener("change", renderCompare);
+  $("city2Select").addEventListener("change", renderCompare);
+}
+function renderCompare() {
+  if (!$("city1Select") || !$("city1Select").options.length) return;
+  const l1 = ALL_LOCATIONS[$("city1Select").value], l2 = ALL_LOCATIONS[$("city2Select").value];
+  if (!l1 || !l2) return;
+  $("compareCity1Name").textContent = l1.city + " (" + l1.name + ")";
+  $("compareCity2Name").textContent = l2.city + " (" + l2.name + ")";
+  $("th-city1").textContent = l1.city;
+  $("th-city2").textContent = l2.city;
+  const instant = getInstant();
+  const tz1 = l1.timezone, tz2 = l2.timezone;
+  const T1 = SunCalc.getTimes(instant, l1.lat, l1.lon);
+  const T2 = SunCalc.getTimes(instant, l2.lat, l2.lon);
+  const d1 = dayDurH(T1), d2 = dayDurH(T2);
+  const rows = [
+    ["🌄 Aube civile", T1.dawn, T2.dawn, true],
+    ["🌅 Lever", T1.sunrise, T2.sunrise, true],
+    ["☀️ Midi solaire", T1.solarNoon, T2.solarNoon, true],
+    ["🌇 Coucher", T1.sunset, T2.sunset, true],
+    ["🌆 Crépuscule civil", T1.dusk, T2.dusk, true],
+    ["⏱️ Durée du jour", d1, d2, false]
+  ];
+  $("compareTableBody").innerHTML = rows.map(([label, a, b, isTime]) => {
+    const va = isTime ? fmtTime(a, tz1) : fmtDur(a);
+    const vb = isTime ? fmtTime(b, tz2) : fmtDur(b);
+    let diff = "—";
+    const ok = a != null && b != null && !isNaN(a) && !isNaN(b);
+    if (ok) {
+      const dm = isTime ? Math.round((b - a) / 60000) : Math.round((b - a) * 60);
+      if (dm === 0) diff = "0min";
+      else {
+        const ad = Math.abs(dm);
+        diff = (dm > 0 ? "+" : "−") + (ad >= 60 ? Math.floor(ad / 60) + "h" : "") + pad2(ad % 60) + "min";
+      }
+    }
+    return `<tr><td>${label}</td><td class="col-city1">${va}</td><td class="col-city2">${vb}</td><td class="col-diff">${diff}</td></tr>`;
+  }).join("");
+  const advice = $("compareAdvice");
+  if (advice) {
+    if (d1 != null && d2 != null) {
+      const best = d1 > d2 ? l1 : l2, other = d1 > d2 ? l2 : l1;
+      advice.textContent = `🌍 En cette date, la journée dure ${fmtDur(Math.max(d1, d2))} à ${best.city} contre ${fmtDur(Math.min(d1, d2))} à ${other.city}.`;
+    } else advice.textContent = "—";
+  }
+  drawLineChart("compareChart", [
+    altSeries(instant, l1, tz1, "#5B9BD5", "rgba(91,155,213,0.10)"),
+    altSeries(instant, l2, tz2, "#EF4135", "rgba(239,65,53,0.08)")
+  ]);
+}
+
+/* ============================================================
+   20. ATLAS
+   ============================================================ */
+const ATLAS_COLORS = ["#5B9BD5", "#EF4135", "#E8E8F0", "#FFD700"];
+function pvgisKey(loc) { return PVGIS_PREFIX + loc.city.replace(/[^A-Za-z]/g, "_").toUpperCase(); }
+function pvgisGet(loc) {
+  const embedded = getPVGISData(loc);
+  if (embedded) return embedded;
+  try { const s = localStorage.getItem(pvgisKey(loc)); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+}
+function monthlyGHI(loc) {
+  const cached = pvgisGet(loc);
+  if (cached && cached.length === 12) return cached.map(v => v / 0.8);
+  const phi = rad(loc.lat);
+  const out = [];
+  let cum = 0;
+  for (let m = 0; m < 12; m++) {
+    const n = cum + 15; cum += DAYS_IN_MONTH[m];
+    const dec = rad(23.44 * Math.sin(2 * Math.PI * (284 + n) / 365));
+    const ws = Math.acos(clamp(-Math.tan(phi) * Math.tan(dec), -1, 1));
+    const E0 = 1 + 0.033 * Math.cos(2 * Math.PI * n / 365);
+    const H0 = (24 / Math.PI) * 1.367 * E0 * (ws * Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.sin(ws));
+    out.push(Math.max(0, H0 * DAYS_IN_MONTH[m] * 0.75 * (loc.sf || 0.9)));
+  }
+  return out;
+}
+function initAtlas() {
+  $("atlasSearch").addEventListener("input", renderAtlasSelector);
+  $("unitTotal").addEventListener("click", () => { atlasUnit = "total"; syncUnitTabs(); renderAtlas(); });
+  $("unitDaily").addEventListener("click", () => { atlasUnit = "daily"; syncUnitTabs(); renderAtlas(); });
+  syncUnitTabs();
+  renderAtlasSelector();
+  renderAtlas();
+}
+function syncUnitTabs() {
+  $("unitTotal").classList.toggle("active", atlasUnit === "total");
+  $("unitDaily").classList.toggle("active", atlasUnit === "daily");
+}
+function toggleAtlasCity(k) {
+  const i = atlasSel.indexOf(k);
+  if (i >= 0) atlasSel.splice(i, 1);
+  else { if (atlasSel.length >= 4) { showToast("⚠️ Maximum 4 villes"); return; } atlasSel.push(k); }
+  renderAtlasSelector();
+  renderAtlas();
+}
+function renderAtlasSelector() {
+  const el = $("atlasSelector"); if (!el) return;
+  const q = ($("atlasSearch").value || "").toLowerCase();
+  const keys = Object.keys(ALL_LOCATIONS).filter(k => ALL_LOCATIONS[k].city.toLowerCase().includes(q));
+  el.innerHTML = keys.map(k => {
+    const tot = Math.round(monthlyGHI(ALL_LOCATIONS[k]).reduce((a, b) => a + b, 0));
+    return `<button class="city-btn ${atlasSel.includes(k) ? "active" : ""}" onclick="toggleAtlasCity('${k}')">
+      <span class="city-name">${ALL_LOCATIONS[k].city}</span>
+      <span class="city-info">${tot} kWh/m²/an</span>
+    </button>`;
+  }).join("");
+}
+function renderAtlas() {
+  const svg = $("atlasChart"); if (!svg) return;
+  const data = atlasSel.map((k, i) => ({ k, loc: ALL_LOCATIONS[k], vals: monthlyGHI(ALL_LOCATIONS[k]), color: ATLAS_COLORS[i % 4] }));
+  $("atlasLegend").innerHTML = data.length ? data.map(d => {
+    const tot = Math.round(d.vals.reduce((a, b) => a + b, 0));
+    return `<span class="at-chip"><span class="sw" style="background:${d.color};--c:${d.color}"></span>${d.loc.city}<span class="tot">${tot} kWh/m²/an</span></span>`;
+  }).join("") : '<em style="color:var(--muted);font-size:.8rem;">Sélectionnez des villes…</em>';
+  buildAtlasChart(svg, data);
+  renderMatrix();
+  renderInsight(data);
+}
+function buildAtlasChart(svg, data) {
+  const W = 720, H = 300, ml = 52, mr = 16, mt = 16, mb = 36;
+  const daily = atlasUnit === "daily";
+  const disp = v => daily ? v / 30.4 : v;
+  const allVals = data.flatMap(d => d.vals.map(disp));
+  const maxV = (allVals.length ? Math.max(...allVals) : 200) * 1.05;
+  const step = maxV > 240 ? 50 : maxV > 100 ? 25 : 10;
+  const x = m => ml + m * (W - ml - mr) / 11;
+  const y = v => H - mb - (v / maxV) * (H - mt - mb);
+  let g = "";
+  for (let v = 0; v <= maxV; v += step) {
+    g += `<line class="at-grid ${v === 0 ? "base" : ""}" x1="${ml}" y1="${y(v).toFixed(1)}" x2="${W - mr}" y2="${y(v).toFixed(1)}"/>`;
+    g += `<text class="at-tick" x="${ml - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  MONTH_LABELS.forEach((mo, m) => { g += `<text class="at-month" x="${x(m).toFixed(1)}" y="${H - 12}" text-anchor="middle">${mo}</text>`; });
+  data.forEach(d => {
+    const pts = d.vals.map((v, m) => `${x(m).toFixed(1)},${y(disp(v)).toFixed(1)}`).join(" ");
+    g += `<polyline class="at-series" style="stroke:${d.color}" points="${pts}"/>`;
+    d.vals.forEach((v, m) => { g += `<circle cx="${x(m).toFixed(1)}" cy="${y(disp(v)).toFixed(1)}" r="3" fill="${d.color}"/>`; });
+  });
+  const wpx = (W - ml - mr) / 12;
+  for (let m = 0; m < 12; m++) {
+    g += `<rect class="cap" x="${(x(m) - wpx / 2).toFixed(1)}" y="${mt}" width="${wpx.toFixed(1)}" height="${H - mt - mb}" fill="transparent" data-m="${m}"/>`;
+  }
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+  svg.style.width = "100%";
+  svg.style.height = "auto";
+  svg.style.maxHeight = "clamp(220px, 55vw, 320px)";
+  svg.innerHTML = g;
+  svg.querySelectorAll("rect.cap").forEach(r => {
+    r.addEventListener("mouseenter", () => showAtlasTip(+r.dataset.m, data));
+    r.addEventListener("mousemove", moveAtlasTip);
+    r.addEventListener("mouseleave", hideAtlasTip);
+  });
+}
+function showAtlasTip(m, data) {
+  const tip = $("atlasTip"); if (!tip) return;
+  const daily = atlasUnit === "daily";
+  const rows = data.map(d => {
+    const v = daily ? d.vals[m] / DAYS_IN_MONTH[m] : d.vals[m];
+    return `<div class="tr"><i style="background:${d.color}"></i>${d.loc.city}<b>${v.toFixed(daily ? 1 : 0)}</b></div>`;
+  }).join("");
+  tip.innerHTML = `<div class="tt">${MONTH_FULL[m]}${daily ? " · moy./jour" : ""}</div>${rows}<div class="u">kWh/m²${daily ? " / jour" : ""}</div>`;
+  tip.classList.add("show");
+}
+function moveAtlasTip(e) {
+  const tip = $("atlasTip"); if (!tip) return;
+  let lx = e.clientX + 14, ly = e.clientY + 14;
+  const r = tip.getBoundingClientRect();
+  if (lx + r.width > innerWidth - 8) lx = e.clientX - r.width - 14;
+  if (ly + r.height > innerHeight - 8) ly = e.clientY - r.height - 14;
+  tip.style.left = lx + "px"; tip.style.top = ly + "px";
+}
+function hideAtlasTip() { const t = $("atlasTip"); if (t) t.classList.remove("show"); }
+function heatColor(v, vmin, vmax) {
+  const t = (v - vmin) / (vmax - vmin || 1);
+  return `rgba(255,215,0,${(0.08 + t * 0.75).toFixed(2)})`;
+}
+function renderMatrix() {
+  const el = $("atlasMatrix"); if (!el) return;
+  const rows = Object.keys(ALL_LOCATIONS).map(k => {
+    const vals = monthlyGHI(ALL_LOCATIONS[k]);
+    return { city: ALL_LOCATIONS[k].city, vals, tot: vals.reduce((a, b) => a + b, 0) };
+  }).sort((a, b) => b.tot - a.tot);
+  const flat = rows.flatMap(r => r.vals);
+  const vmin = Math.min(...flat), vmax = Math.max(...flat);
+  const curM = new Date().getMonth();
+  let html = `<div class="mx-row"><div class="mx-name mx-hn">Ville</div>${MONTH_LABELS.map((mo, m) => `<div class="mx-mo ${m === curM ? "hl" : ""}">${mo}</div>`).join("")}<div class="mx-tot mx-hn" style="text-align:right">Total</div></div>`;
+  rows.forEach((r, idx) => {
+    const c = ATLAS_COLORS[idx % 4];
+    const maxM = r.vals.indexOf(Math.max(...r.vals));
+    html += `<div class="mx-row">
+      <div class="mx-name"><span class="rk">${idx + 1}</span><i style="background:${c}"></i>${r.city}</div>
+      ${r.vals.map((v, m) => `<div class="mx-cell ${m === maxM ? "hl" : ""}" style="background:${heatColor(v, vmin, vmax)}" title="${MONTH_FULL[m]} : ${Math.round(v)} kWh/m²">${Math.round(v)}</div>`).join("")}
+      <div class="mx-tot">${Math.round(r.tot)}</div>
+    </div>`;
+  });
+  el.innerHTML = html;
+  let strip = "";
+  for (let i = 0; i < 12; i++) strip += `<i style="background:${heatColor(vmin + (vmax - vmin) * i / 11, vmin, vmax)}"></i>`;
+  $("atlasScale").innerHTML = `<span>kWh/m² · mois</span><div class="strip">${strip}</div><span class="cap">${Math.round(vmin)} … ${Math.round(vmax)}</span>`;
+}
+function renderInsight(data) {
+  const el = $("atlasInsight"); if (!el) return;
+  if (!data.length) { el.textContent = "Sélectionnez jusqu'à 4 villes pour comparer leur ensoleillement annuel."; return; }
+  const rows = data.map(d => ({ city: d.loc.city, vals: d.vals, tot: d.vals.reduce((a, b) => a + b, 0) }));
+  const best = rows.reduce((a, b) => b.tot > a.tot ? b : a);
+  const worst = rows.reduce((a, b) => b.tot < a.tot ? b : a);
+  const gap = best.tot > 0 ? Math.round((best.tot - worst.tot) / best.tot * 100) : 0;
+  const bestM = best.vals.indexOf(Math.max(...best.vals));
+  el.innerHTML = `🏆 <b>${best.city}</b> domine avec <b>${Math.round(best.tot).toLocaleString("fr-FR")} kWh/m²</b> sur l'année — ${worst.city !== best.city ? `soit <b>${gap}%</b> de plus que ${worst.city}` : "aucune comparaison"}. Son meilleur mois est <b>${MONTH_FULL[bestM]}</b> (${Math.round(best.vals[bestM])} kWh/m²).`;
+}
+function exportAtlasPNG() {
+  const svg = $("atlasChart"); if (!svg) return;
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.style.background = "#0d0d12";
+  const xml = new XMLSerializer().serializeToString(clone);
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement("canvas");
+    cv.width = 1440; cv.height = 600;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#0d0d12"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    const a = document.createElement("a");
+    a.download = "atlas-oracle-solaire.png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+    showToast("📸 Atlas exporté en PNG");
+  };
+  img.onerror = () => showToast("❌ Export impossible");
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+}
+
+/* ============================================================
+   21. SIMULATEUR PV (avec hémisphère adaptatif)
+   ============================================================ */
+function initPV() {
+  const keys = Object.keys(ALL_LOCATIONS);
+  $("pvCity").innerHTML = keys.map(k => `<option value="${k}">${ALL_LOCATIONS[k].city}</option>`).join("");
+  $("pvCity").value = "MADRID";
+  ["pvCity", "pvPower", "pvTilt", "pvAzimuth", "pvPrice", "pvTarif"].forEach(id => $(id).addEventListener("input", renderPV));
+  renderPV();
+}
+function renderPV() {
+  const el = $("pvResult"); if (!el) return;
+  const loc = ALL_LOCATIONS[$("pvCity").value] || currentLocation;
+  const power = parseFloat($("pvPower").value) || 3;
+  const tilt = parseFloat($("pvTilt").value) || 35;
+  const azim = parseFloat($("pvAzimuth").value) || 180;
+  const price = parseFloat($("pvPrice").value) || 1800;
+  const tarif = parseFloat($("pvTarif").value) || 0.13;
+  const ghi = monthlyGHI(loc);
+  // Hémisphère adaptatif
+  const isNorth = loc.hemisphere === "nord";
+  const optTilt = clamp(Math.abs(loc.lat), 0, 45);
+  const optAz = isNorth ? 180 : 0;
+  const dT = tilt - optTilt, dA = azim - optAz;
+  const factor = clamp(1 - 0.003 * dT * dT - 0.0016 * dA * dA, 0.55, 1);
+  const monthlyE = ghi.map(g => power * g * factor * 0.8);
+  const annualE = monthlyE.reduce((a, b) => a + b, 0);
+  const revenue = annualE * tarif;
+  const invest = power * price;
+  const roi = revenue > 0 ? invest / revenue : Infinity;
+  const co2 = annualE * 0.75;
+  el.innerHTML = [
+    ["Production annuelle", Math.round(annualE).toLocaleString("fr-FR") + " kWh", ""],
+    ["Spécifique", Math.round(annualE / power) + " kWh/kWc/an", ""],
+    ["Facteur orientation", Math.round(factor * 100) + " %", ""],
+    ["Revenu annuel", Math.round(revenue).toLocaleString("fr-FR") + " €", ""],
+    ["Retour sur investissement", isFinite(roi) ? roi.toFixed(1) + " ans" : "—", "gold"],
+    ["CO₂ évité", (co2 / 1000).toFixed(2) + " t/an", "gold"]
+  ].map(([l, v, c]) => `<div class="stat ${c}"><div class="stat-label">${l}</div><div class="stat-value">${v}</div></div>`).join("");
+  drawPVChart(monthlyE);
+}
+function drawPVChart(monthlyE) {
+  const p = prepCanvas("pvChart"); if (!p) return;
+  const { ctx, w, h } = p;
+  ctx.clearRect(0, 0, w, h);
+  const max = Math.max(...monthlyE, 1) * 1.15;
+  const bw = (w - 40) / 12;
+  monthlyE.forEach((v, m) => {
+    const bh = v / max * (h - 50);
+    const x = 28 + m * bw, y2 = h - 30 - bh;
+    const g = ctx.createLinearGradient(0, y2, 0, h - 30);
+    g.addColorStop(0, "#FFD700"); g.addColorStop(1, "#5B9BD5");
+    ctx.fillStyle = g;
+    ctx.fillRect(x + 3, y2, bw - 6, Math.max(bh, 1));
+    ctx.fillStyle = "#8a8a9a"; ctx.font = "9px 'Courier New'"; ctx.textAlign = "center";
+    ctx.fillText(MONTH_LABELS[m], x + bw / 2, h - 12);
+    if (v >= max * 0.88) ctx.fillText(Math.round(v), x + bw / 2, y2 - 4);
+  });
+  ctx.textAlign = "left";
+}
+
+/* ============================================================
+   22. PVGIS COMPARE
+   ============================================================ */
+function initPVGISCompare() {
+  const keys = Object.keys(ALL_LOCATIONS);
+  $("pvgisCitySelect").innerHTML = keys.map(k => `<option value="${k}">${ALL_LOCATIONS[k].city}</option>`).join("");
+  $("pvgisCitySelect").value = "MADRID";
+  $("pvgisCitySelect").addEventListener("change", renderPVGISCompare);
+}
+function renderPVGISCompare() {
+  const k = $("pvgisCitySelect").value;
+  const loc = ALL_LOCATIONS[k] || currentLocation;
+  const tilt = loc.hemisphere === "nord" ? 35 : 20;
+  const model = monthlyGHI(loc).map(g => g * 0.8);
+  const real = pvgisGet(loc);
+  const modelTot = Math.round(model.reduce((a, b) => a + b, 0));
+  const realTot = real ? Math.round(real.reduce((a, b) => a + b, 0)) : null;
+  const stats = document.querySelectorAll("#pvgisCompareContent .stat-value");
+  if (stats.length >= 4) {
+    stats[0].textContent = modelTot.toLocaleString("fr-FR") + " kWh/kWc";
+    stats[1].textContent = realTot != null ? realTot.toLocaleString("fr-FR") + " kWh/kWc" : "— (non disponible)";
+    stats[2].textContent = realTot ? ((realTot - modelTot) / realTot * 100).toFixed(1) + "%" : "—";
+    stats[3].textContent = tilt + "° / " + (loc.hemisphere === "nord" ? "Sud" : "Nord");
+  }
+  const series = [{ points: model.map((v, m) => ({ x: m, y: v })), color: "#5B9BD5", fill: "rgba(91,155,213,0.10)" }];
+  if (real) series.push({ points: real.map((v, m) => ({ x: m, y: v })), color: "#FFD700", dash: true });
+  const maxV = Math.max(...series.flatMap(s => s.points.map(p => p.y)), 1) * 1.1;
+  drawLineChart("pvgisCompareChart", series, { yMin: 0, yMax: maxV, yStep: Math.max(10, Math.round(maxV / 5 / 10) * 10), xMax: 11, xStep: 1, xLabels: MONTH_LABELS, height: 240 });
+}
+
+/* ============================================================
+   23. MODE AR
+   ============================================================ */
+function onDO(e) {
+  if (typeof e.webkitCompassHeading === "number") arHeading = e.webkitCompassHeading;
+  else if (typeof e.alpha === "number") arHeading = (360 - e.alpha) % 360;
+  arPitch = (typeof e.beta === "number" ? e.beta : 0) - 90;
+}
+function angDiff(a, b) {
+  let d = (a - b) % 360;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return d;
+}
+function arShow(real) {
+  arReal = real; arActive = true;
+  $("arClose").style.display = "block";
+  $("arInfo").style.display = "block";
+  $("arOverlay").style.display = "block";
+  const cv = $("arCanvas");
+  cv.width = innerWidth; cv.height = innerHeight;
+  if (real) {
+    $("arVideo").style.display = "block";
+    $("arShutter").classList.add("show");
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+        .then(st => { arStream = st; $("arVideo").srcObject = st; })
+        .catch(e => { showToast("❌ Caméra refusée"); stopAR(); });
+    } else { showToast("❌ Caméra non supportée"); stopAR(); return; }
+    if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
+      DeviceOrientationEvent.requestPermission().catch(() => {});
+    }
+    window.addEventListener("deviceorientation", onDO, true);
+    $("arInfo").textContent = "📷 Mode AR — pointez vers le Soleil";
+  } else {
+    arHeading = sunPos(new Date(), currentLocation.lat, currentLocation.lon).bearing;
+    $("arInfo").textContent = "📷 Mode AR simplifié";
+  }
+  arRAF = requestAnimationFrame(arLoop);
+}
+function startAR() { arShow(false); }
+function startARReal() { arShow(true); }
+function arLoop() {
+  if (!arActive) return;
+  const cv = $("arCanvas");
+  const ctx = cv.getContext("2d");
+  const w = cv.width, h = cv.height;
+  const loc = currentLocation;
+  const now = new Date();
+  const s = sunPos(now, loc.lat, loc.lon);
+  const mp = SunCalc.getMoonPosition(now, loc.lat, loc.lon);
+  const mB = (deg(mp.azimuth) + 180) % 360, mA = deg(mp.altitude);
+  if (!arReal) {
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "#0a0a14"); g.addColorStop(1, "#141428");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    for (let i = 0; i < 90; i++) {
+      const x = (i * 137.5) % w, y = (i * 89.7) % (h * 0.7);
+      ctx.fillRect(x, y, 1.5, 1.5);
+    }
+  } else ctx.clearRect(0, 0, w, h);
+  const FOVX = 70, FOVY = 50;
+  const horizonY = h / 2 + (arPitch / FOVY) * (h / 2);
+  ctx.strokeStyle = "rgba(91,155,213,0.6)";
+  ctx.lineWidth = 1.5; ctx.setLineDash([8, 6]);
+  ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(w, horizonY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = "11px 'Courier New'"; ctx.textAlign = "center";
+  for (let a = 0; a < 360; a += 15) {
+    const dx = angDiff(a, arHeading);
+    if (Math.abs(dx) > FOVX / 2) continue;
+    const x = w / 2 + (dx / (FOVX / 2)) * (w / 2);
+    ctx.strokeStyle = "rgba(91,155,213,0.35)";
+    ctx.beginPath(); ctx.moveTo(x, horizonY - 5); ctx.lineTo(x, horizonY + 5); ctx.stroke();
+    if (a % 90 === 0) {
+      ctx.fillStyle = { 0: "#5B9BD5", 90: "#E8E8F0", 180: "#EF4135", 270: "#FF8A80" }[a];
+      ctx.fillText(["N", "E", "S", "O"][a / 90], x, horizonY - 12);
+    }
+  }
+  drawBody(ctx, w, h, FOVX, FOVY, horizonY, s.bearing, s.altitude, "☀", "#FFD700", "Soleil");
+  drawBody(ctx, w, h, FOVX, FOVY, horizonY, mB, mA, "🌙", "#c8d4e8", "Lune");
+  ctx.textAlign = "left";
+  arRAF = requestAnimationFrame(arLoop);
+}
+function drawBody(ctx, w, h, FOVX, FOVY, horizonY, bearing, altitude, emoji, color, label) {
+  const dx = angDiff(bearing, arHeading);
+  const dy = altitude - arPitch;
+  if (Math.abs(dx) > FOVX / 2 + 10 || Math.abs(dy) > FOVY / 2 + 20) return;
+  const x = w / 2 + (dx / (FOVX / 2)) * (w / 2);
+  const y = horizonY - (dy / (FOVY / 2)) * (h / 2);
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, 34);
+  glow.addColorStop(0, color); glow.addColorStop(1, "transparent");
+  ctx.globalAlpha = 0.35; ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(x, y, 34, 0, 2 * Math.PI); ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.font = "34px serif"; ctx.textAlign = "center";
+  ctx.fillText(emoji, x, y + 12);
+  ctx.font = "12px 'Courier New'"; ctx.fillStyle = color;
+  ctx.fillText(label + " " + Math.round(bearing) + "° / " + Math.round(altitude) + "°", x, y + 36);
+  ctx.textAlign = "left";
+}
+function stopAR() {
+  arActive = false;
+  if (arRAF) cancelAnimationFrame(arRAF);
+  arRAF = null;
+  if (arStream) { arStream.getTracks().forEach(t => t.stop()); arStream = null; }
+  $("arVideo").style.display = "none";
+  $("arOverlay").style.display = "none";
+  $("arClose").style.display = "none";
+  $("arInfo").style.display = "none";
+  $("arShutter").classList.remove("show");
+  window.removeEventListener("deviceorientation", onDO, true);
+}
+function captureAR() {
+  const video = $("arVideo"), cv = $("arCanvas");
+  const out = document.createElement("canvas");
+  out.width = cv.width; out.height = cv.height;
+  const ctx = out.getContext("2d");
+  if (arReal && video.videoWidth) {
+    const vr = video.videoWidth / video.videoHeight, cr = out.width / out.height;
+    let dw, dh;
+    if (vr > cr) { dh = out.height; dw = dh * vr; } else { dw = out.width; dh = dw / vr; }
+    ctx.drawImage(video, (out.width - dw) / 2, (out.height - dh) / 2, dw, dh);
+  } else { ctx.fillStyle = "#0a0a14"; ctx.fillRect(0, 0, out.width, out.height); }
+  ctx.drawImage(cv, 0, 0);
+  const a = document.createElement("a");
+  a.download = "oracle-ar-" + Date.now() + ".png";
+  a.href = out.toDataURL("image/png");
+  a.click();
+  showToast("📸 Photo AR enregistrée");
+}
+function openCalibration() {
+  $("calibOverlay").classList.add("show");
+  const bar = $("calibBar");
+  bar.style.width = "0%";
+  $("calibStatus").textContent = "En attente du gyroscope…";
+  let p = 0;
+  clearInterval(calibTimer);
+  calibTimer = setInterval(() => {
+    p += 4;
+    bar.style.width = p + "%";
+    $("calibStatus").textContent = p < 40 ? "Rotation…" : p < 80 ? "Correction…" : "Presque terminé…";
+    if (p >= 100) { clearInterval(calibTimer); $("calibStatus").textContent = "✅ Calibration terminée"; }
+  }, 120);
+}
+function closeCalibration() { clearInterval(calibTimer); $("calibOverlay").classList.remove("show"); }
+
+/* ============================================================
+   24. DIVERS
+   ============================================================ */
+function shareLink() {
+  const p = new URLSearchParams({ city: currentKey, date: $("dateInput").value, time: $("timeInput").value, mode: currentMode });
+  const url = location.origin + location.pathname + "?" + p.toString();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => showToast("🔗 Lien copié")).catch(() => showToast(url));
+  } else showToast(url);
+}
+function locateMe() {
+  if (!navigator.geolocation) { showToast("❌ Géolocalisation non supportée"); return; }
+  const gs = $("geoStatus");
+  gs.textContent = "📍 Localisation en cours…"; gs.className = "geo-status";
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    const tz = -new Date().getTimezoneOffset() / 60;
+    geoLoc = { name: "Ma position", city: "📍 Ma position", lat, lon, altitude: Math.round(pos.coords.altitude || 0), timezone: tz, dst: false, hemisphere: lat < 0 ? "sud" : "nord", population: 1, region: "—", sf: 0.9 };
+    currentLocation = geoLoc; currentKey = "";
+    renderCitySelector();
+    addGeoMarker(lat, lon);
+    gs.textContent = "✅ Position : " + lat.toFixed(4) + ", " + lon.toFixed(4);
+    gs.className = "geo-status ok";
+    refreshAll();
+    loadWeather(geoLoc);
+    renderISSPasses(geoLoc);
+  }, err => {
+    gs.textContent = "❌ Géolocalisation refusée";
+    gs.className = "geo-status err";
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+function requestNotificationPermission() {
+  if (!("Notification" in window)) { showToast("❌ Notifications non supportées"); return; }
+  Notification.requestPermission().then(p => showToast(p === "granted" ? "🔔 Notifications activées" : "🔕 Refusées"));
+}
+function randomize() {
+  const keys = currentRegion === "EUROPE" ? Object.keys(EUROPE_LOCATIONS) : Object.keys(LOCATIONS);
+  const k = keys[Math.floor(Math.random() * keys.length)];
+  const y = new Date().getFullYear();
+  const rand = new Date(y, 0, 1 + Math.floor(Math.random() * 365));
+  $("dateInput").value = rand.toISOString().slice(0, 10);
+  const rm = Math.floor(Math.random() * 1440);
+  $("timeInput").value = pad2(Math.floor(rm / 60)) + ":" + pad2(rm % 60);
+  $("timeSlider").value = rm / 60;
+  selectCity(k);
+  showToast("🎲 " + ALL_LOCATIONS[k].city);
+}
+function nowButton() {
+  const now = new Date();
+  const locNow = new Date(now.getTime() + currentTZ * 3600000);
+  $("dateInput").value = locNow.toISOString().slice(0, 10);
+  $("timeInput").value = pad2(locNow.getUTCHours()) + ":" + pad2(locNow.getUTCMinutes());
+  $("timeSlider").value = locNow.getUTCHours() + locNow.getUTCMinutes() / 60;
+  refreshAll();
+}
+function refreshAll() {
+  const instant = getInstant();
+  renderSolo(instant);
+  renderTimes(instant);
+  renderMoon(instant);
+  renderMoonModule(instant);
+  renderSolarMap(instant);
+  renderCharts(instant);
+  renderPlanets(instant, currentLocation);
+  renderMeteorShowers(instant, currentLocation);
+  renderPhotoMode(instant);
+  renderEvents(dayStartUTC(instant).y);
+}
+
+/* ============================================================
+   25. EXPORT PDF
+   ============================================================ */
+function showPDFOverlay(status) {
+  const ov = $("pdfOverlay");
+  if (ov) ov.classList.add("show");
+  if (status && $("pdfStatus")) $("pdfStatus").textContent = status;
+}
+function hidePDFOverlay() { const ov = $("pdfOverlay"); if (ov) ov.classList.remove("show"); }
+
+async function exportPDF() {
+  if (typeof window.jspdf === "undefined") { showToast("❌ jsPDF non chargé"); return; }
+  showPDFOverlay("Préparation…");
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const loc = currentLocation;
+    const instant = getInstant();
+    const { y, mo, da } = dayStartUTC(instant);
+    const T = SunCalc.getTimes(instant, loc.lat, loc.lon);
+    const mt = SunCalc.getMoonTimes(instant, loc.lat, loc.lon);
+    const ill = SunCalc.getMoonIllumination(instant);
+    const s = sunPos(instant, loc.lat, loc.lon);
+    const mp = SunCalc.getMoonPosition(instant, loc.lat, loc.lon);
+    const moonB = (deg(mp.azimuth) + 180) % 360;
+    const moonAlt = deg(mp.altitude);
+    const BLEU = [0, 85, 164], AZUR = [91, 155, 213], ROUGE = [239, 65, 53], NOIR = [13, 13, 18], GRIS = [138, 138, 154], W = 210;
+    doc.setFillColor(...BLEU); doc.rect(0, 0, W / 3, 4, "F");
+    doc.setFillColor(255, 255, 255); doc.rect(W / 3, 0, W / 3, 4, "F");
+    doc.setFillColor(...ROUGE); doc.rect(2 * W / 3, 0, W / 3, 4, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(20); doc.setTextColor(...BLEU);
+    doc.text("ORACLE SOLAIRE", W / 2, 18, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...GRIS);
+    doc.text("Éphémérides · Europe · La Réunion", W / 2, 24, { align: "center" });
+    doc.setDrawColor(...AZUR); doc.setLineWidth(0.5); doc.line(15, 30, W - 15, 30);
+    let cy = 40;
+    doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR);
+    doc.text(loc.city + " — " + loc.name, 15, cy);
+    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS);
+    cy += 6;
+    doc.text(`${da} ${MONTH_FULL[mo]} ${y} · ${loc.lat.toFixed(4)}°, ${loc.lon.toFixed(4)}° · ${loc.altitude} m · UTC${currentTZ >= 0 ? "+" : ""}${currentTZ}`, 15, cy);
+    cy += 12;
+    doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(...ROUGE);
+    doc.text("SOLEIL", 15, cy); cy += 8;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR);
+    [["Aube civile", fmtTime(T.dawn)], ["Lever", fmtTime(T.sunrise)], ["Midi solaire", fmtTime(T.solarNoon)], ["Coucher", fmtTime(T.sunset)], ["Crépuscule civil", fmtTime(T.dusk)], ["Durée", fmtDur(dayDurH(T))], ["Azimut", s.bearing.toFixed(1) + "° (" + directionName(s.bearing) + ")"], ["Hauteur", (s.altitude >= 0 ? "+" : "") + s.altitude.toFixed(1) + "°"]].forEach(([l, v]) => {
+      doc.setTextColor(...GRIS); doc.text(l, 20, cy);
+      doc.setTextColor(...NOIR); doc.setFont("helvetica", "bold"); doc.text(v, 110, cy);
+      doc.setFont("helvetica", "normal"); cy += 5.5;
+    });
+    cy += 4;
+    doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(...AZUR);
+    doc.text("LUNE", 15, cy); cy += 8;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR);
+    [["Lever", fmtTime(mt.rise)], ["Coucher", fmtTime(mt.set)], ["Durée", fmtDur(moonDurH(mt))], ["Phase", phaseName(ill.phase)], ["Illumination", Math.round(ill.fraction * 100) + " %"], ["Distance", Math.round(mp.distance).toLocaleString("fr-FR") + " km"], ["Azimut", moonB.toFixed(1) + "° (" + directionName(moonB) + ")"], ["Hauteur", (moonAlt >= 0 ? "+" : "") + moonAlt.toFixed(1) + "°"]].forEach(([l, v]) => {
+      doc.setTextColor(...GRIS); doc.text(l, 20, cy);
+      doc.setTextColor(...NOIR); doc.setFont("helvetica", "bold"); doc.text(v, 110, cy);
+      doc.setFont("helvetica", "normal"); cy += 5.5;
+    });
+    cy += 6;
+    doc.setFillColor(245, 245, 250); doc.roundedRect(15, cy - 4, W - 30, 22, 2, 2, "F");
+    doc.setDrawColor(...AZUR); doc.setLineWidth(0.8); doc.line(15, cy - 4, 15, cy + 18);
+    doc.setFontSize(9); doc.setFont("helvetica", "italic"); doc.setTextColor(...AZUR);
+    doc.text("Conseil du jour", 20, cy + 1);
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR);
+    doc.text(doc.splitTextToSize(adviceText(s.altitude, loc), W - 45), 20, cy + 7);
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setDrawColor(...AZUR); doc.setLineWidth(0.3); doc.line(15, pageH - 15, W - 15, pageH - 15);
+    doc.setFontSize(8); doc.setTextColor(...GRIS);
+    doc.text("Oracle Solaire v19.0 · Europe", 15, pageH - 10);
+    doc.text("Généré le " + new Date().toLocaleString("fr-FR"), W - 15, pageH - 10, { align: "right" });
+    doc.save("ephemerides-" + loc.city.replace(/[^a-z0-9]/gi, "_").toLowerCase() + "-" + y + "-" + pad2(mo + 1) + "-" + pad2(da) + ".pdf");
+    hidePDFOverlay();
+    showToast("📄 PDF enregistré");
+  } catch (e) {
+    hidePDFOverlay();
+    showToast("❌ Erreur PDF : " + e.message);
+  }
+}
+
+async function exportPDFWithCharts() {
+  if (typeof window.jspdf === "undefined") { showToast("❌ jsPDF non chargé"); return; }
+  showPDFOverlay("Capture des graphiques…");
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const loc = currentLocation;
+    const instant = getInstant();
+    const { y, mo, da } = dayStartUTC(instant);
+    const W = 210;
+    doc.setFillColor(0, 85, 164); doc.rect(0, 0, W / 3, 4, "F");
+    doc.setFillColor(255, 255, 255); doc.rect(W / 3, 0, W / 3, 4, "F");
+    doc.setFillColor(239, 65, 53); doc.rect(2 * W / 3, 0, W / 3, 4, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(0, 85, 164);
+    doc.text("Graphiques · " + loc.city + " · " + da + " " + MONTH_FULL[mo] + " " + y, W / 2, 15, { align: "center" });
+    const charts = [
+      { id: "sunChart", title: "Course du Soleil et de la Lune (24h)", y: 22 },
+      { id: "solarMap", title: "Carte solaire", y: 105 },
+      { id: "moonAzimuthTimeline", title: "Azimut Lune vs Soleil", y: 188 }
+    ];
+    for (const chart of charts) {
+      const canvas = document.getElementById(chart.id);
+      if (!canvas) continue;
+      try {
+        $("pdfStatus").textContent = "Capture : " + chart.title;
+        const dataUrl = await html2canvas(canvas.parentElement, { backgroundColor: "#0d0d12", scale: 1.5, logging: false, useCORS: true }).then(c => c.toDataURL("image/png"));
+        doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(0, 85, 164);
+        doc.text(chart.title, 15, chart.y);
+        const imgW = W - 30;
+        const imgH = imgW * (canvas.height / canvas.width);
+        doc.addImage(dataUrl, "PNG", 15, chart.y + 3, imgW, Math.min(imgH, 75));
+      } catch (e) { console.warn("Capture échouée:", chart.id, e); }
+    }
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setDrawColor(91, 155, 213); doc.setLineWidth(0.3); doc.line(15, pageH - 15, W - 15, pageH - 15);
+    doc.setFontSize(8); doc.setTextColor(138, 138, 154);
+    doc.text("Oracle Solaire v19.0 · Europe", 15, pageH - 10);
+    doc.text("Généré le " + new Date().toLocaleString("fr-FR"), W - 15, pageH - 10, { align: "right" });
+    doc.save("ephemerides-graphiques-" + loc.city.replace(/[^a-z0-9]/gi, "_").toLowerCase() + "-" + y + "-" + pad2(mo + 1) + "-" + pad2(da) + ".pdf");
+    hidePDFOverlay();
+    showToast("📄 PDF avec graphiques enregistré");
+  } catch (e) {
+    hidePDFOverlay();
+    showToast("❌ Erreur : " + e.message);
+  }
+}
+
+/* ============================================================
+   26. INITIALISATION
+   ============================================================ */
+let lastWidth = window.innerWidth;
+window.addEventListener("DOMContentLoaded", () => {
+  const now = new Date();
+  $("dateInput").value = now.toISOString().slice(0, 10);
+  $("timeInput").value = "12:00";
+
+  $("timeSlider").addEventListener("input", e => {
+    const v = parseFloat(e.target.value);
+    $("timeInput").value = pad2(Math.floor(v)) + ":" + pad2(Math.round((v % 1) * 60));
+    refreshAll();
+  });
+  $("dateInput").addEventListener("change", refreshAll);
+  $("timeInput").addEventListener("change", () => {
+    const [h, m] = ($("timeInput").value || "12:00").split(":").map(Number);
+    $("timeSlider").value = (h || 0) + (m || 0) / 60;
+    refreshAll();
+  });
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (Math.abs(window.innerWidth - lastWidth) > 30) {
+        lastWidth = window.innerWidth;
+        refreshAll();
+        if (map) map.resize();
+      }
+    }, 200);
+  });
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => { refreshAll(); if (map) map.resize(); }, 400);
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+  const drawer = $("mobileDrawer");
+  let touchStartX = 0;
+  drawer.addEventListener("touchstart", e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  drawer.addEventListener("touchend", e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (dx > 80) closeDrawer();
+  }, { passive: true });
+
+  renderCitySelector();
+  initCompare();
+  initPV();
+  initPVGISCompare();
+  initMap();
+  syncMobileNav();
+
+  const p = new URLSearchParams(location.search);
+  if (p.get("city") && ALL_LOCATIONS[p.get("city")]) selectCity(p.get("city"));
+  if (p.get("date")) $("dateInput").value = p.get("date");
+  if (p.get("time")) $("timeInput").value = p.get("time");
+  if (p.get("mode") && ["solo", "compare", "atlas", "pv", "comparePvgis"].includes(p.get("mode"))) switchMode(p.get("mode"));
+
+  refreshAll();
+  loadWeather(currentLocation);
+  renderISSPasses(currentLocation);
+  renderCreoleCalendar();
+  initAtlas();
+  showToast("🌞 Oracle Solaire v4.0 — Europe prêt !");
+});
+</script>
+</body>
+</html>
