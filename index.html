@@ -14,7 +14,9 @@
 <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
   :root {
@@ -457,6 +459,20 @@
     box-shadow: 0 6px 20px rgba(0,0,0,0.4); pointer-events: none; white-space: nowrap;
   }
   .refresh-indicator.show { transform: translateX(-50%) translateY(0); }
+  .export-thermo-bar {
+    display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center;
+  }
+  .export-thermo-bar button {
+    padding: 0.35rem 0.85rem; font-size: 0.72rem; border-radius: 18px;
+    background: linear-gradient(135deg, #2a2a3a, #1a1a2e);
+    border: 1px solid #3a3a4a; color: var(--text); cursor: pointer;
+    transition: all 0.2s; font-weight: 600;
+  }
+  .export-thermo-bar button:hover {
+    border-color: var(--azur);
+    box-shadow: 0 0 12px rgba(91,155,213,0.35);
+    transform: translateY(-1px);
+  }
   @media (max-width: 900px) {
     body { padding: 1rem 0.7rem 6rem; }
     h1 { font-size: 1.25rem; letter-spacing: 0.08em; }
@@ -844,8 +860,19 @@
       <p class="at-insight" id="atlasInsight"></p>
     </div>
     <div class="card" style="margin-top:1.2rem;">
-      <h2 style="font-size:1rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);text-align:center;">🌡️ Thermomètre annuel — kWh/m²</h2>
-      <p style="font-size:.78rem;color:var(--muted);text-align:center;margin-top:.25rem;">Classement sur l'année · cumul mensuel par ville</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.8rem;margin-bottom:0.8rem;">
+        <div>
+          <h2 style="font-size:1rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);">🌡️ Thermomètre annuel — kWh/m²</h2>
+          <p style="font-size:.78rem;color:var(--muted);margin-top:.25rem;">Classement sur l'année · cumul mensuel par ville</p>
+        </div>
+        <div class="export-thermo-bar">
+          <button onclick="exportThermoCSV()">📄 CSV</button>
+          <button onclick="exportThermoXLSX()">📊 Excel</button>
+          <button onclick="exportThermoJSON()">🔗 JSON</button>
+          <button onclick="exportThermoPDF()">📕 PDF</button>
+          <button onclick="exportThermoPNG()">🖼️ PNG</button>
+        </div>
+      </div>
       <div class="mx-scroll"><div class="at-matrix" id="atlasMatrix"></div></div>
       <div class="at-scale" id="atlasScale"></div>
     </div>
@@ -991,7 +1018,7 @@ if ('serviceWorker' in navigator) {
 self.addEventListener('activate',e=>self.clients.claim());
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
-  e.respondWith(caches.open('oracle-v20').then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(res=>{if(res.ok&&res.type==='basic')c.put(e.request,res.clone());return res;}).catch(()=>c.match(e.request)))));
+  e.respondWith(caches.open('oracle-v21').then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(res=>{if(res.ok&&res.type==='basic')c.put(e.request,res.clone());return res;}).catch(()=>c.match(e.request)))));
 });`;
   const blob = new Blob([swCode], { type: 'application/javascript' });
   navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
@@ -1226,6 +1253,7 @@ function haversine(lat1, lon1, lat2, lon2) {
 }
 const MONTH_FULL = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const MONTH_LABELS = ["J","F","M","A","M","J","J","A","S","O","N","D"];
+const MONTH_NAMES_LONG = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
 
 function fmtTime(d, tz) {
@@ -2599,7 +2627,7 @@ function renderCompare() {
 }
 
 /* ============================================================
-   20. ATLAS — VERSION CORRIGÉE
+   20. ATLAS
    ============================================================ */
 const ATLAS_COLORS = ["#5B9BD5", "#EF4135", "#E8E8F0", "#FFD700"];
 function pvgisKey(loc) { return PVGIS_PREFIX + loc.city.replace(/[^A-Za-z]/g, "_").toUpperCase(); }
@@ -2642,34 +2670,26 @@ function syncUnitTabs() {
 }
 function toggleAtlasCity(k) {
   const i = atlasSel.indexOf(k);
-  if (i >= 0) {
-    atlasSel.splice(i, 1);
-  } else {
-    if (atlasSel.length >= 4) {
-      showToast("⚠️ Maximum 4 villes — retirez-en une d'abord");
-      return;
-    }
+  if (i >= 0) atlasSel.splice(i, 1);
+  else {
+    if (atlasSel.length >= 4) { showToast("⚠️ Maximum 4 villes"); return; }
     atlasSel.push(k);
   }
   renderAtlasSelector();
   renderAtlas();
 }
-window.toggleAtlasCity = toggleAtlasCity;
-
 function renderAtlasSelector() {
   const el = $("atlasSelector"); if (!el) return;
   const q = ($("atlasSearch")?.value || "").toLowerCase();
   const keys = Object.keys(ALL_LOCATIONS).filter(k => ALL_LOCATIONS[k].city.toLowerCase().includes(q));
   el.innerHTML = keys.map(k => {
     const tot = Math.round(monthlyGHI(ALL_LOCATIONS[k]).reduce((a, b) => a + b, 0));
-    const active = atlasSel.includes(k);
-    return `<button class="city-btn ${active ? "active" : ""}" onclick="toggleAtlasCity('${k}')">
+    return `<button class="city-btn ${atlasSel.includes(k) ? "active" : ""}" onclick="toggleAtlasCity('${k}')">
       <span class="city-name">${ALL_LOCATIONS[k].city}</span>
       <span class="city-info">${tot} kWh/m²/an</span>
     </button>`;
   }).join("");
 }
-
 function renderAtlas() {
   try {
     const svg = $("atlasChart"); if (!svg) return;
@@ -2678,7 +2698,6 @@ function renderAtlas() {
       if (!loc) return null;
       return { k, loc, vals: monthlyGHI(loc), color: ATLAS_COLORS[i % 4] };
     }).filter(Boolean);
-    
     const legendEl = $("atlasLegend");
     if (legendEl) {
       legendEl.innerHTML = data.length ? data.map(d => {
@@ -2686,7 +2705,6 @@ function renderAtlas() {
         return `<span class="at-chip"><span class="sw" style="background:${d.color};--c:${d.color}"></span>${d.loc.city}<span class="tot">${tot} kWh/m²/an</span></span>`;
       }).join("") : '<em style="color:var(--muted);font-size:.8rem;">Sélectionnez des villes…</em>';
     }
-    
     buildAtlasChart(svg, data);
     renderMatrix();
     renderInsight(data);
@@ -2695,7 +2713,6 @@ function renderAtlas() {
     showToast("❌ Erreur atlas : " + e.message);
   }
 }
-
 function buildAtlasChart(svg, data) {
   const W = 720, H = 300, ml = 52, mr = 16, mt = 16, mb = 36;
   const daily = atlasUnit === "daily";
@@ -2811,6 +2828,265 @@ function exportAtlasPNG() {
   };
   img.onerror = () => showToast("❌ Export impossible");
   img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+}
+
+/* ============================================================
+   20.b — EXPORT DU THERMOMÈTRE ANNUEL (multi-format)
+   ============================================================ */
+function getThermoData() {
+  const rows = Object.keys(ALL_LOCATIONS).map(k => {
+    const loc = ALL_LOCATIONS[k];
+    const vals = monthlyGHI(loc);
+    return {
+      key: k,
+      city: loc.city,
+      country: loc.name,
+      lat: loc.lat,
+      lon: loc.lon,
+      vals: vals.map(v => Math.round(v)),
+      total: Math.round(vals.reduce((a, b) => a + b, 0))
+    };
+  }).sort((a, b) => b.total - a.total);
+  rows.forEach((r, i) => { r.rank = i + 1; });
+  return rows;
+}
+function thermoFilename(ext) {
+  const d = new Date();
+  const stamp = d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) +
+                "-" + pad2(d.getHours()) + pad2(d.getMinutes());
+  return "thermometre-solaire-" + stamp + "." + ext;
+}
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ---------- CSV ---------- */
+function exportThermoCSV() {
+  try {
+    const rows = getThermoData();
+    const sep = ";";
+    const header = ["Rang", "Ville", "Pays/Region", "Latitude", "Longitude",
+                    "Janvier","Fevrier","Mars","Avril","Mai","Juin",
+                    "Juillet","Aout","Septembre","Octobre","Novembre","Decembre",
+                    "Total kWh/m2/an"];
+    const lines = [header.join(sep)];
+    rows.forEach(r => {
+      const line = [
+        r.rank,
+        '"' + r.city.replace(/"/g, '""') + '"',
+        '"' + r.country.replace(/"/g, '""') + '"',
+        r.lat.toFixed(4),
+        r.lon.toFixed(4),
+        ...r.vals,
+        r.total
+      ];
+      lines.push(line.join(sep));
+    });
+    const csv = "\uFEFF" + lines.join("\r\n");
+    downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), thermoFilename("csv"));
+    showToast("📄 CSV exporté (" + rows.length + " villes)");
+  } catch (e) {
+    console.error(e);
+    showToast("❌ Erreur CSV : " + e.message);
+  }
+}
+
+/* ---------- Excel ---------- */
+function exportThermoXLSX() {
+  try {
+    if (typeof XLSX === "undefined") { showToast("❌ SheetJS non chargé"); return; }
+    const rows = getThermoData();
+    const aoa = [
+      ["Rang", "Ville", "Pays/Region", "Latitude", "Longitude",
+       ...MONTH_NAMES_LONG, "Total kWh/m²/an"]
+    ];
+    rows.forEach(r => {
+      aoa.push([r.rank, r.city, r.country, r.lat, r.lon, ...r.vals, r.total]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [
+      { wch: 6 }, { wch: 22 }, { wch: 22 }, { wch: 10 }, { wch: 11 },
+      ...Array(12).fill({ wch: 9 }), { wch: 14 }
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Thermomètre annuel");
+    XLSX.writeFile(wb, thermoFilename("xlsx"));
+    showToast("📊 Excel exporté (" + rows.length + " villes)");
+  } catch (e) {
+    console.error(e);
+    showToast("❌ Erreur Excel : " + e.message);
+  }
+}
+
+/* ---------- JSON ---------- */
+function exportThermoJSON() {
+  try {
+    const rows = getThermoData();
+    const payload = {
+      meta: {
+        title: "Thermomètre annuel — kWh/m²",
+        source: "Oracle Solaire v4.0",
+        generated: new Date().toISOString(),
+        unit: "kWh/m²",
+        months: MONTH_NAMES_LONG,
+        totalCities: rows.length
+      },
+      cities: rows.map(r => ({
+        rank: r.rank,
+        key: r.key,
+        city: r.city,
+        country: r.country,
+        latitude: +r.lat.toFixed(4),
+        longitude: +r.lon.toFixed(4),
+        monthly: {
+          jan: r.vals[0], feb: r.vals[1], mar: r.vals[2], apr: r.vals[3],
+          may: r.vals[4], jun: r.vals[5], jul: r.vals[6], aug: r.vals[7],
+          sep: r.vals[8], oct: r.vals[9], nov: r.vals[10], dec: r.vals[11]
+        },
+        annualTotal: r.total
+      }))
+    };
+    const json = JSON.stringify(payload, null, 2);
+    downloadBlob(new Blob([json], { type: "application/json;charset=utf-8;" }), thermoFilename("json"));
+    showToast("🔗 JSON exporté (" + rows.length + " villes)");
+  } catch (e) {
+    console.error(e);
+    showToast("❌ Erreur JSON : " + e.message);
+  }
+}
+
+/* ---------- PDF ---------- */
+function exportThermoPDF() {
+  try {
+    if (typeof window.jspdf === "undefined") { showToast("❌ jsPDF non chargé"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const rows = getThermoData();
+    const W = doc.internal.pageSize.getWidth();
+
+    doc.setFillColor(0, 85, 164); doc.rect(0, 0, W / 3, 4, "F");
+    doc.setFillColor(255, 255, 255); doc.rect(W / 3, 0, W / 3, 4, "F");
+    doc.setFillColor(239, 65, 53); doc.rect(2 * W / 3, 0, W / 3, 4, "F");
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(0, 85, 164);
+    doc.text("Thermomètre annuel — kWh/m²", W / 2, 14, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 130);
+    doc.text("Classement sur l'année · cumul mensuel par ville · " + rows.length + " villes · Oracle Solaire v4.0",
+             W / 2, 20, { align: "center" });
+
+    const head = [["#", "Ville", "Pays", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D", "Total"]];
+    const body = rows.map(r => [r.rank, r.city, r.country, ...r.vals, r.total]);
+
+    if (typeof doc.autoTable === "function") {
+      doc.autoTable({
+        head: head,
+        body: body,
+        startY: 26,
+        styles: { fontSize: 7, cellPadding: 1.2, overflow: "linebreak" },
+        headStyles: { fillColor: [0, 85, 164], textColor: 255, fontStyle: "bold", halign: "center" },
+        alternateRowStyles: { fillColor: [245, 245, 250] },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 8 },
+          1: { cellWidth: 32, fontStyle: "bold" },
+          2: { cellWidth: 30, textColor: [120, 120, 130] },
+          15: { halign: "right", fontStyle: "bold", cellWidth: 14 }
+        },
+        didParseCell: function (data) {
+          if (data.section === "body" && data.column.index >= 3 && data.column.index <= 14) {
+            const v = Number(data.cell.raw) || 0;
+            const t = clamp(v / 280, 0, 1);
+            const r = Math.round(255 * (1 - t * 0.85) + 255 * t);
+            const g = Math.round(255 * (1 - t * 0.85) + 215 * t);
+            const b = Math.round(255 * (1 - t * 0.85) + 0 * t);
+            data.cell.styles.fillColor = [r, g, b];
+          }
+          if (data.section === "body" && data.column.index === 15) {
+            data.cell.styles.fontStyle = "bold";
+          }
+        },
+        margin: { left: 8, right: 8 },
+        theme: "grid"
+      });
+    } else {
+      doc.setFontSize(8); doc.setTextColor(0, 0, 0);
+      let y = 28;
+      rows.forEach(r => {
+        const line = pad2(r.rank) + " " + r.city.padEnd(20).slice(0, 20) + " " +
+                     r.country.padEnd(18).slice(0, 18) + " " +
+                     r.vals.map(v => String(v).padStart(4)).join(" ") + " " +
+                     String(r.total).padStart(6);
+        doc.text(line, 10, y);
+        y += 4;
+        if (y > 200) { doc.addPage(); y = 20; }
+      });
+    }
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const H = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(91, 155, 213); doc.setLineWidth(0.3);
+      doc.line(8, H - 10, W - 8, H - 10);
+      doc.setFontSize(7); doc.setTextColor(138, 138, 154);
+      doc.text("Oracle Solaire v4.0 · Thermomètre annuel kWh/m²", 10, H - 6);
+      doc.text("Page " + i + "/" + pageCount, W - 10, H - 6, { align: "right" });
+    }
+
+    doc.save(thermoFilename("pdf"));
+    showToast("📕 PDF exporté (" + rows.length + " villes)");
+  } catch (e) {
+    console.error(e);
+    showToast("❌ Erreur PDF : " + e.message);
+  }
+}
+
+/* ---------- PNG ---------- */
+async function exportThermoPNG() {
+  try {
+    if (typeof html2canvas === "undefined") { showToast("❌ html2canvas non chargé"); return; }
+    const el = $("atlasMatrix"); if (!el) { showToast("❌ Tableau introuvable"); return; }
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "fixed";
+    wrapper.style.left = "-99999px";
+    wrapper.style.top = "0";
+    wrapper.style.background = "#0d0d12";
+    wrapper.style.padding = "20px";
+    wrapper.style.width = Math.max(el.scrollWidth + 40, 900) + "px";
+    const clone = el.cloneNode(true);
+    const header = document.createElement("div");
+    header.style.cssText = "font-family:'Segoe UI',sans-serif;color:#5B9BD5;font-size:18px;font-weight:bold;margin-bottom:12px;text-align:center;letter-spacing:0.1em;";
+    header.textContent = "🌡️ Thermomètre annuel — kWh/m²";
+    wrapper.appendChild(header);
+    const sub = document.createElement("div");
+    sub.style.cssText = "font-family:'Segoe UI',sans-serif;color:#8a8a9a;font-size:11px;margin-bottom:14px;text-align:center;";
+    sub.textContent = "Classement annuel · " + getThermoData().length + " villes · Oracle Solaire v4.0 · " + new Date().toLocaleString("fr-FR");
+    wrapper.appendChild(sub);
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: "#0d0d12",
+      scale: 2,
+      logging: false,
+      useCORS: true
+    });
+    document.body.removeChild(wrapper);
+
+    canvas.toBlob(blob => {
+      downloadBlob(blob, thermoFilename("png"));
+      showToast("🖼️ PNG exporté");
+    }, "image/png");
+  } catch (e) {
+    console.error(e);
+    showToast("❌ Erreur PNG : " + e.message);
+  }
 }
 
 /* ============================================================
@@ -3189,7 +3465,7 @@ async function exportPDF() {
     const pageH = doc.internal.pageSize.getHeight();
     doc.setDrawColor(...AZUR); doc.setLineWidth(0.3); doc.line(15, pageH - 15, W - 15, pageH - 15);
     doc.setFontSize(8); doc.setTextColor(...GRIS);
-    doc.text("Oracle Solaire v19.1 · Europe", 15, pageH - 10);
+    doc.text("Oracle Solaire v4.0 · Europe", 15, pageH - 10);
     doc.text("Généré le " + new Date().toLocaleString("fr-FR"), W - 15, pageH - 10, { align: "right" });
     doc.save("ephemerides-" + loc.city.replace(/[^a-z0-9]/gi, "_").toLowerCase() + "-" + y + "-" + pad2(mo + 1) + "-" + pad2(da) + ".pdf");
     hidePDFOverlay();
@@ -3236,7 +3512,7 @@ async function exportPDFWithCharts() {
     const pageH = doc.internal.pageSize.getHeight();
     doc.setDrawColor(91, 155, 213); doc.setLineWidth(0.3); doc.line(15, pageH - 15, W - 15, pageH - 15);
     doc.setFontSize(8); doc.setTextColor(138, 138, 154);
-    doc.text("Oracle Solaire v19.1 · Europe", 15, pageH - 10);
+    doc.text("Oracle Solaire v4.0 · Europe", 15, pageH - 10);
     doc.text("Généré le " + new Date().toLocaleString("fr-FR"), W - 15, pageH - 10, { align: "right" });
     doc.save("ephemerides-graphiques-" + loc.city.replace(/[^a-z0-9]/gi, "_").toLowerCase() + "-" + y + "-" + pad2(mo + 1) + "-" + pad2(da) + ".pdf");
     hidePDFOverlay();
@@ -3248,7 +3524,7 @@ async function exportPDFWithCharts() {
 }
 
 /* ============================================================
-   26. EXPOSITION GLOBALE DES FONCTIONS (pour onclick inline)
+   26. EXPOSITION GLOBALE
    ============================================================ */
 window.toggleDrawer = toggleDrawer;
 window.closeDrawer = closeDrawer;
@@ -3270,6 +3546,11 @@ window.shareLink = shareLink;
 window.exportPDF = exportPDF;
 window.exportPDFWithCharts = exportPDFWithCharts;
 window.exportAtlasPNG = exportAtlasPNG;
+window.exportThermoCSV = exportThermoCSV;
+window.exportThermoXLSX = exportThermoXLSX;
+window.exportThermoJSON = exportThermoJSON;
+window.exportThermoPDF = exportThermoPDF;
+window.exportThermoPNG = exportThermoPNG;
 window.startAR = startAR;
 window.startARReal = startARReal;
 window.stopAR = stopAR;
