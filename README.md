@@ -5,7 +5,7 @@
 **🌞 Oracle Directionnel Solaire + Lunaire + Atlas Energetique + Simulateur PV ( Photovoltaique ) + PVGIS vs Modele ... 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-19.0-blue.svg)](https://github.com/)
+[![Version](https://img.shields.io/badge/version-4.0-blue.svg)](https://github.com/)
 [![PWA](https://img.shields.io/badge/PWA-ready-success.svg)](https://web.dev/progressive-web-apps/)
 [![Responsive](https://img.shields.io/badge/responsive-mobile%20%7C%20tablet%20%7C%20desktop-green.svg)]()
 
