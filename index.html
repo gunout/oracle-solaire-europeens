@@ -991,7 +991,7 @@ if ('serviceWorker' in navigator) {
 self.addEventListener('activate',e=>self.clients.claim());
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
-  e.respondWith(caches.open('oracle-v19').then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(res=>{if(res.ok&&res.type==='basic')c.put(e.request,res.clone());return res;}).catch(()=>c.match(e.request)))));
+  e.respondWith(caches.open('oracle-v20').then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(res=>{if(res.ok&&res.type==='basic')c.put(e.request,res.clone());return res;}).catch(()=>c.match(e.request)))));
 });`;
   const blob = new Blob([swCode], { type: 'application/javascript' });
   navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
@@ -2437,7 +2437,7 @@ function flyToLocation(loc) {
 }
 
 /* ============================================================
-   18. SÉLECTEURS — ✅ CORRIGÉ v19.1
+   18. SÉLECTEURS
    ============================================================ */
 function renderCitySelector() {
   const el = $("citySelector"); if (!el) return;
@@ -2481,7 +2481,6 @@ function renderFavBar() {
     return `<button class="small" onclick="selectCity('${k}')">⭐ ${l.city}</button>`;
   }).join("");
 }
-/* ✅ selectCity ROBUSTE */
 function selectCity(k) {
   if (!k || !ALL_LOCATIONS[k]) {
     console.warn("Ville inconnue :", k);
@@ -2503,7 +2502,6 @@ function selectCity(k) {
   try { renderISSPasses(currentLocation); } catch (e) { console.error("Erreur ISS:", e); }
   try { renderCreoleCalendar(); } catch (e) { console.error("Erreur calendrier:", e); }
 }
-/* ✅ switchRegion ROBUSTE */
 function switchRegion(region) {
   currentRegion = region;
   syncRegionTabs();
@@ -2601,7 +2599,7 @@ function renderCompare() {
 }
 
 /* ============================================================
-   20. ATLAS
+   20. ATLAS — VERSION CORRIGÉE
    ============================================================ */
 const ATLAS_COLORS = ["#5B9BD5", "#EF4135", "#E8E8F0", "#FFD700"];
 function pvgisKey(loc) { return PVGIS_PREFIX + loc.city.replace(/[^A-Za-z]/g, "_").toUpperCase(); }
@@ -2627,47 +2625,77 @@ function monthlyGHI(loc) {
   return out;
 }
 function initAtlas() {
-  $("atlasSearch").addEventListener("input", renderAtlasSelector);
-  $("unitTotal").addEventListener("click", () => { atlasUnit = "total"; syncUnitTabs(); renderAtlas(); });
-  $("unitDaily").addEventListener("click", () => { atlasUnit = "daily"; syncUnitTabs(); renderAtlas(); });
+  const searchEl = $("atlasSearch");
+  if (searchEl) searchEl.addEventListener("input", renderAtlasSelector);
+  const unitTotal = $("unitTotal");
+  const unitDaily = $("unitDaily");
+  if (unitTotal) unitTotal.addEventListener("click", () => { atlasUnit = "total"; syncUnitTabs(); renderAtlas(); });
+  if (unitDaily) unitDaily.addEventListener("click", () => { atlasUnit = "daily"; syncUnitTabs(); renderAtlas(); });
   syncUnitTabs();
   renderAtlasSelector();
   renderAtlas();
 }
 function syncUnitTabs() {
-  $("unitTotal").classList.toggle("active", atlasUnit === "total");
-  $("unitDaily").classList.toggle("active", atlasUnit === "daily");
+  const ut = $("unitTotal"), ud = $("unitDaily");
+  if (ut) ut.classList.toggle("active", atlasUnit === "total");
+  if (ud) ud.classList.toggle("active", atlasUnit === "daily");
 }
 function toggleAtlasCity(k) {
   const i = atlasSel.indexOf(k);
-  if (i >= 0) atlasSel.splice(i, 1);
-  else { if (atlasSel.length >= 4) { showToast("⚠️ Maximum 4 villes"); return; } atlasSel.push(k); }
+  if (i >= 0) {
+    atlasSel.splice(i, 1);
+  } else {
+    if (atlasSel.length >= 4) {
+      showToast("⚠️ Maximum 4 villes — retirez-en une d'abord");
+      return;
+    }
+    atlasSel.push(k);
+  }
   renderAtlasSelector();
   renderAtlas();
 }
+window.toggleAtlasCity = toggleAtlasCity;
+
 function renderAtlasSelector() {
   const el = $("atlasSelector"); if (!el) return;
-  const q = ($("atlasSearch").value || "").toLowerCase();
+  const q = ($("atlasSearch")?.value || "").toLowerCase();
   const keys = Object.keys(ALL_LOCATIONS).filter(k => ALL_LOCATIONS[k].city.toLowerCase().includes(q));
   el.innerHTML = keys.map(k => {
     const tot = Math.round(monthlyGHI(ALL_LOCATIONS[k]).reduce((a, b) => a + b, 0));
-    return `<button class="city-btn ${atlasSel.includes(k) ? "active" : ""}" onclick="toggleAtlasCity('${k}')">
+    const active = atlasSel.includes(k);
+    return `<button class="city-btn ${active ? "active" : ""}" onclick="toggleAtlasCity('${k}')">
       <span class="city-name">${ALL_LOCATIONS[k].city}</span>
       <span class="city-info">${tot} kWh/m²/an</span>
     </button>`;
   }).join("");
 }
+
 function renderAtlas() {
-  const svg = $("atlasChart"); if (!svg) return;
-  const data = atlasSel.map((k, i) => ({ k, loc: ALL_LOCATIONS[k], vals: monthlyGHI(ALL_LOCATIONS[k]), color: ATLAS_COLORS[i % 4] }));
-  $("atlasLegend").innerHTML = data.length ? data.map(d => {
-    const tot = Math.round(d.vals.reduce((a, b) => a + b, 0));
-    return `<span class="at-chip"><span class="sw" style="background:${d.color};--c:${d.color}"></span>${d.loc.city}<span class="tot">${tot} kWh/m²/an</span></span>`;
-  }).join("") : '<em style="color:var(--muted);font-size:.8rem;">Sélectionnez des villes…</em>';
-  buildAtlasChart(svg, data);
-  renderMatrix();
-  renderInsight(data);
+  try {
+    const svg = $("atlasChart"); if (!svg) return;
+    const data = atlasSel.map((k, i) => {
+      const loc = ALL_LOCATIONS[k];
+      if (!loc) return null;
+      return { k, loc, vals: monthlyGHI(loc), color: ATLAS_COLORS[i % 4] };
+    }).filter(Boolean);
+    
+    const legendEl = $("atlasLegend");
+    if (legendEl) {
+      legendEl.innerHTML = data.length ? data.map(d => {
+        const tot = Math.round(d.vals.reduce((a, b) => a + b, 0));
+        return `<span class="at-chip"><span class="sw" style="background:${d.color};--c:${d.color}"></span>${d.loc.city}<span class="tot">${tot} kWh/m²/an</span></span>`;
+      }).join("") : '<em style="color:var(--muted);font-size:.8rem;">Sélectionnez des villes…</em>';
+    }
+    
+    buildAtlasChart(svg, data);
+    renderMatrix();
+    renderInsight(data);
+  } catch (e) {
+    console.error("Erreur renderAtlas:", e);
+    showToast("❌ Erreur atlas : " + e.message);
+  }
 }
+
 function buildAtlasChart(svg, data) {
   const W = 720, H = 300, ml = 52, mr = 16, mt = 16, mb = 36;
   const daily = atlasUnit === "daily";
@@ -3220,7 +3248,40 @@ async function exportPDFWithCharts() {
 }
 
 /* ============================================================
-   26. INITIALISATION
+   26. EXPOSITION GLOBALE DES FONCTIONS (pour onclick inline)
+   ============================================================ */
+window.toggleDrawer = toggleDrawer;
+window.closeDrawer = closeDrawer;
+window.showRefreshIndicator = showRefreshIndicator;
+window.setLanguage = setLanguage;
+window.switchMode = switchMode;
+window.switchRegion = switchRegion;
+window.selectCity = selectCity;
+window.toggleFav = toggleFav;
+window.toggleAtlasCity = toggleAtlasCity;
+window.renderCompare = renderCompare;
+window.renderPV = renderPV;
+window.renderPVGISCompare = renderPVGISCompare;
+window.refreshAll = refreshAll;
+window.randomize = randomize;
+window.nowButton = nowButton;
+window.locateMe = locateMe;
+window.shareLink = shareLink;
+window.exportPDF = exportPDF;
+window.exportPDFWithCharts = exportPDFWithCharts;
+window.exportAtlasPNG = exportAtlasPNG;
+window.startAR = startAR;
+window.startARReal = startARReal;
+window.stopAR = stopAR;
+window.captureAR = captureAR;
+window.openCalibration = openCalibration;
+window.closeCalibration = closeCalibration;
+window.toggleTimeAnimation = toggleTimeAnimation;
+window.requestNotificationPermission = requestNotificationPermission;
+window.showToast = showToast;
+
+/* ============================================================
+   27. INITIALISATION
    ============================================================ */
 let lastWidth = window.innerWidth;
 window.addEventListener("DOMContentLoaded", () => {
